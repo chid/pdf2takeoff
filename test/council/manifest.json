@@ -1,0 +1,137 @@
+{
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff cannot write into those yet; the suite asserts it fails clearly). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "sets": [
+    {
+      "id": "kingborough-da-2024-64",
+      "council": "Kingborough Council (TAS)",
+      "application": "DA-2024-64, 183 Kregors Road, Gordon: dwelling and associated works",
+      "url": "https://www.kingborough.tas.gov.au/wp-content/uploads/2024/05/DA-2024-64-183-Kregors-Road-Gordon.pdf",
+      "sha256": "e754fb4c2a3968dd1775d057463e29c096a5e3ee421eba708dff07c05b9cc66f",
+      "bytes": 4585896,
+      "retrieved": "2026-10-17",
+      "pages": 8,
+      "drawingPages": "3-8",
+      "rotatedPages": "",
+      "encrypted": true,
+      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; permissions allow annotating, but pdf-lib cannot write encrypted files."
+    },
+    {
+      "id": "sorell-5-2025-2",
+      "council": "Sorell Council (TAS)",
+      "application": "5.2025.2.1, 41 Bay Street, Dunalley",
+      "url": "https://sorell.tas.gov.au/wp-content/uploads/2025/02/5.2025.2.1-Advertising-Docs-41-Bay-Street-Dunalley-Representations-Close-Monday-3rd-March-2025.pdf",
+      "sha256": "754e315c6d058fb6bd604804ebc2d323336a4a9c80e53a448f699c73b1029b38",
+      "bytes": 3470864,
+      "retrieved": "2026-10-17",
+      "pages": 10,
+      "drawingPages": "4-10",
+      "rotatedPages": "",
+      "encrypted": false,
+      "notes": "ArchiCAD (GSPublisher) A3 set with live text: 1:200 and 1:300 scale labels. pp1-3 are the council notice with 38 form-field annotations that a save must preserve."
+    },
+    {
+      "id": "sorell-5-2024-189",
+      "council": "Sorell Council (TAS)",
+      "application": "5.2024.189.1, 27 Nugent Road, Wattle Hill: dwelling",
+      "url": "https://sorell.tas.gov.au/wp-content/uploads/2024/12/5.2024.189.1-Development-Application-27-Nugent-Road-Wattle-Hill-Representations-Close-Monday-23rd-December-2024.pdf",
+      "sha256": "9b9c1a3eea901c6c0a5af436c6897aa4fb70933d2835a7a5a2459d78bd18d364",
+      "bytes": 27552584,
+      "retrieved": "2026-10-17",
+      "pages": 49,
+      "drawingPages": "27-49",
+      "rotatedPages": "37-49",
+      "encrypted": false,
+      "notes": "Mixed set: pp8-26 scanned wastewater report (~12k image tiles per page, skipped); pp27-36 A1 hydraulic sheets at 1:100/1:1000; pp37-49 A3 architectural sheets stored with /Rotate 270.",
+      "expect": [
+        {
+          "kind": "length",
+          "page": 42,
+          "scale": "1:100",
+          "points": [
+            [
+              219,
+              858
+            ],
+            [
+              219,
+              291
+            ]
+          ],
+          "meters": 20.0,
+          "tolerance": 0.02,
+          "what": "overall length, printed 20000",
+          "source": "p42 Ground Floor Plan (1:100 @A3, /Rotate 270); end ticks of the printed dimension strings located on a 3x render, checked 2026-10-17"
+        },
+        {
+          "kind": "length",
+          "page": 42,
+          "scale": "1:100",
+          "points": [
+            [
+              709,
+              858
+            ],
+            [
+              709,
+              404.5
+            ]
+          ],
+          "meters": 16.0,
+          "tolerance": 0.02,
+          "what": "main building, printed 16000",
+          "source": "p42 Ground Floor Plan (1:100 @A3, /Rotate 270); end ticks of the printed dimension strings located on a 3x render, checked 2026-10-17"
+        },
+        {
+          "kind": "length",
+          "page": 42,
+          "scale": "1:100",
+          "points": [
+            [
+              709,
+              404.5
+            ],
+            [
+              709,
+              291
+            ]
+          ],
+          "meters": 4.0,
+          "tolerance": 0.02,
+          "what": "P3 garage bay, printed 4000",
+          "source": "p42 Ground Floor Plan (1:100 @A3, /Rotate 270); end ticks of the printed dimension strings located on a 3x render, checked 2026-10-17"
+        },
+        {
+          "kind": "length",
+          "page": 42,
+          "scale": "1:100",
+          "points": [
+            [
+              624.33,
+              968.33
+            ],
+            [
+              341,
+              968.33
+            ]
+          ],
+          "meters": 10.0,
+          "tolerance": 0.02,
+          "what": "overall depth, printed 10000",
+          "source": "p42 Ground Floor Plan (1:100 @A3, /Rotate 270); end ticks of the printed dimension strings located on a 3x render, checked 2026-10-17"
+        },
+        {
+          "kind": "count",
+          "page": 42,
+          "at": [
+            544.3,
+            248.7
+          ],
+          "count": 2,
+          "what": "22,500 L rainwater tanks",
+          "source": "p42, counted by eye 2026-10-17",
+          "knownIssue": "scan finds 1: each tank's label text touches its outline, so the two circles become differently shaped components"
+        }
+      ]
+    }
+  ]
+}

@@ -19,3 +19,7 @@ STRATEGY.md
 # private spark-advantage plan (like STRATEGY.md)
 SPARK-PLAN.md
 FRONTIER-ANALYSIS.md
+
+# real council drawing sets for the local suite (copyright of their authors;
+# fetch with scripts/fetch-council.mjs, never commit)
+test/council/cache/

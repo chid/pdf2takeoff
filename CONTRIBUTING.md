@@ -45,6 +45,7 @@ npm run dev      # http://localhost:5173
 npm run sample   # regenerate the demo drawings
 npm run build    # typecheck + production build
 npm test         # engine tests (Node built-in runner)
+npm run test:council  # real council drawings, local only (see test/council/README.md)
 ```
 
 The bundled sample (`Try the sample drawing`) has a printed 12.00 m dimension
