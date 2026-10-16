@@ -19,7 +19,7 @@ what does your boss want in the Excel export? Open an issue titled
 2. **Small, scoped PRs.** One thing per PR. If it touches more than ~3 files or
    restructures anything, it needs an agreed issue and probably should be
    discussed in stages.
-3. **CI must pass.** `npm ci && npm run build` green is the first review.
+3. **CI must pass.** `npm ci && npm run build && npm test` green is the first review.
 4. **No new dependencies without discussion.** The permissive-licence,
    zero-backend architecture is a feature (see STRATEGY.md). Propose the dep in
    an issue first.
@@ -44,6 +44,7 @@ npm ci
 npm run dev      # http://localhost:5173
 npm run sample   # regenerate the demo drawings
 npm run build    # typecheck + production build
+npm test         # engine tests (Node built-in runner)
 ```
 
 The bundled sample (`Try the sample drawing`) has a printed 12.00 m dimension

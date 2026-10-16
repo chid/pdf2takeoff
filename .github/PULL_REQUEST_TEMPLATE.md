@@ -11,6 +11,6 @@
 **Screenshots** (for UI changes):
 
 **Checklist**
-- [ ] CI passes (`npm run build`)
+- [ ] CI passes (`npm run build && npm test`)
 - [ ] No new dependencies
 - [ ] One logical change, small scope

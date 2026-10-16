@@ -3,11 +3,9 @@
 // pdf2takeoff annotations back out when a file is reopened.
 
 import { state, takeoffData } from './state';
-import { getPageAnnotations } from './viewer';
 import { buildAnnotatedPdf } from '../engine/annotate';
-import { parseMarkups, type AnnotationLike } from '../engine/read';
+import { readPdfMarkups } from '../engine/read';
 import { syncUpsertMarkup } from './session';
-import type { Markup } from '../engine/types';
 
 export async function saveAnnotatedPdf(): Promise<void> {
   if (!state.fileBytes || state.markups.length === 0) return;
@@ -22,16 +20,8 @@ export async function saveAnnotatedPdf(): Promise<void> {
 
 /** Read pdf2takeoff-authored annotations from the open document into state. */
 export async function importMarkups(): Promise<number> {
-  const found: Markup[] = [];
-  for (let p = 1; p <= state.pageCount; p++) {
-    let annots: Awaited<ReturnType<typeof getPageAnnotations>> = [];
-    try {
-      annots = await getPageAnnotations(p);
-    } catch {
-      continue;
-    }
-    found.push(...parseMarkups(annots as unknown as AnnotationLike[], p, found.length));
-  }
+  if (!state.fileBytes) return 0;
+  const found = await readPdfMarkups(state.fileBytes);
   if (found.length) {
     state.markups = found;
     for (const m of found) syncUpsertMarkup(m);

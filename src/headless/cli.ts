@@ -5,9 +5,9 @@ import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync, statSync, mkdirSync, readdirSync } from 'node:fs';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { readMarkups, scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
 import { basename, join } from 'node:path';
-import { parseMarkups, type AnnotationLike } from '../engine/read.ts';
+import { readPdfMarkups } from '../engine/read.ts';
 import { buildAnnotatedPdf } from '../engine/annotate.ts';
 import { buildMatrix, toDelimited, xlsxBytes, groupsOf } from '../engine/export.ts';
 import { nextId, defaultLabel } from '../engine/geometry.ts';
@@ -56,28 +56,27 @@ function readPdf(path: string): Uint8Array {
 }
 
 async function readMarkupsFromPdf(file: string): Promise<{ doc: Awaited<ReturnType<typeof openPdf>>; markups: Markup[] }> {
-  const doc = await openPdf(readPdf(file));
-  return { doc, markups: await readMarkups(doc) };
+  const bytes = readPdf(file);
+  return { doc: await openPdf(bytes), markups: await readPdfMarkups(bytes) };
 }
 
 async function cmdInfo(file: string): Promise<unknown> {
-  const doc = await openPdf(readPdf(file));
-  const markups = await readMarkups(doc);
-  let other = 0;
+  const bytes = readPdf(file);
+  const doc = await openPdf(bytes);
+  const markups = await readPdfMarkups(bytes);
+  let total = 0;
   const pages: { page: number; widthPt: number; heightPt: number }[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const vp = page.getViewport({ scale: 1 });
-    const annots = await page.getAnnotations({ intent: 'display' });
-    const parsed = parseMarkups(annots as unknown as AnnotationLike[], p, 0).length;
-    other += annots.length - parsed;
+    total += (await page.getAnnotations({ intent: 'display' })).length;
     pages.push({ page: p, widthPt: Math.round(vp.width), heightPt: Math.round(vp.height) });
   }
   return {
     file,
     pageCount: doc.numPages,
     pages,
-    annotations: { pdf2takeoff: markups.length, other },
+    annotations: { pdf2takeoff: markups.length, other: Math.max(0, total - markups.length) },
   };
 }
 

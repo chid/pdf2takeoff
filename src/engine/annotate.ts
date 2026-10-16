@@ -2,13 +2,33 @@
 // Polygon, FreeText) so they open in Bluebeam Revu, Acrobat and friends.
 // Pure pdf-lib: bytes in, bytes out — works identically in any host.
 
-import { PDFDocument, PDFName, PDFString, type PDFObject } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFHexString, PDFName, PDFString, type PDFObject, type PDFPage } from 'pdf-lib';
 import type { Calibration, Markup, Pt } from './types.ts';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle } from './geometry.ts';
 import { formatLength, formatArea, formatVolume, type DisplayUnit } from './units.ts';
 import { resolveCalibration, type Viewport } from './viewports.ts';
 
 export const ANNOTATION_AUTHOR = 'pdf2takeoff';
+/** Private annotation key holding the markup's exact data as JSON, so a
+ *  round-trip never has to parse the human-readable Contents text. */
+export const PAYLOAD_KEY = 'PDF2TakeoffMarkup';
+
+/** What PAYLOAD_KEY carries. Geometry stays in the standard keys (L,
+ *  Vertices, Rect) so edits made in Revu/Acrobat still come back. */
+export interface MarkupPayload {
+  v: 1;
+  id: string;
+  type: Markup['type'];
+  label: string;
+  depth?: number; // metres
+  status?: Markup['status'];
+  layer?: string;
+}
+
+/** Text value of a PDF string object (literal or hex), else null. */
+export function pdfText(v: PDFObject | undefined): string | null {
+  return v instanceof PDFString || v instanceof PDFHexString ? v.decodeText() : null;
+}
 
 const PRODUCER = 'pdf2takeoff 0.1.0';
 const COLOR_HEX: Record<string, [number, number, number]> = {
@@ -71,6 +91,22 @@ function bbox(points: Pt[], pad: number): [number, number, number, number] {
   return [x0 - pad, y0 - pad, x1 + pad, y1 + pad];
 }
 
+/** Drop the annotations a previous save wrote, so saving a reopened file
+ *  replaces its markups instead of stacking a second copy on top. */
+function removeOwnAnnotations(page: PDFPage): void {
+  const annots = page.node.Annots();
+  if (!annots) return;
+  const kept: PDFObject[] = [];
+  for (let i = 0; i < annots.size(); i++) {
+    const dict = annots.lookup(i);
+    const own = dict instanceof PDFDict && pdfText(dict.lookup(PDFName.of('T'))) === ANNOTATION_AUTHOR;
+    if (!own) kept.push(annots.get(i));
+  }
+  if (kept.length === annots.size()) return;
+  if (kept.length) page.node.set(PDFName.of('Annots'), page.doc.context.obj(kept));
+  else page.node.delete(PDFName.of('Annots'));
+}
+
 export interface AnnotateOptions {
   bytes: Uint8Array;
   markups: Markup[];
@@ -79,7 +115,8 @@ export interface AnnotateOptions {
   viewports?: Viewport[];
 }
 
-/** Return a copy of the PDF with one standard annotation per markup. */
+/** Return a copy of the PDF with one standard annotation per markup,
+ *  replacing any pdf2takeoff annotations already in it. */
 export async function buildAnnotatedPdf(opts: AnnotateOptions): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(opts.bytes.slice());
   pdfDoc.setProducer(PRODUCER);
@@ -87,6 +124,7 @@ export async function buildAnnotatedPdf(opts: AnnotateOptions): Promise<Uint8Arr
 
   const pages = pdfDoc.getPages();
   const { context } = pdfDoc;
+  for (const page of pages) removeOwnAnnotations(page);
 
   const addAnnot = (pageIndex: number, dict: Record<string, string | number | number[] | PDFObject>) => {
     const page = pages[pageIndex];
@@ -96,10 +134,22 @@ export async function buildAnnotatedPdf(opts: AnnotateOptions): Promise<Uint8Arr
     annots.push(ref);
   };
 
+  const payload = (m: Markup): MarkupPayload => ({
+    v: 1,
+    id: m.id,
+    type: m.type,
+    label: m.label,
+    ...(m.depth !== undefined ? { depth: m.depth } : {}),
+    ...(m.status ? { status: m.status } : {}),
+    ...(m.layer ? { layer: m.layer } : {}),
+  });
+
+  // hex (UTF-16) strings: labels may hold any script, and ² ³ ° survive
   const common = (m: Markup) => ({
     Type: PDFName.of('Annot'),
     T: PDFString.of(ANNOTATION_AUTHOR),
-    Contents: PDFString.of(contentsFor(m, opts.calibrations, opts.displayUnit)),
+    Contents: PDFHexString.fromText(contentsFor(m, opts.calibrations, opts.displayUnit, opts.viewports)),
+    [PAYLOAD_KEY]: PDFHexString.fromText(JSON.stringify(payload(m))),
     M: PDFString.of(pdfDate()),
     C: COLOR_HEX[m.type],
     CA: 1,

@@ -91,13 +91,6 @@ export async function closePdf(): Promise<void> {
   }
 }
 
-/** Load annotations written by pdf2takeoff (or any tool) back into the state. */
-export async function getPageAnnotations(pageNum: number) {
-  if (!doc) return [];
-  const page = await doc.getPage(pageNum);
-  return page.getAnnotations({ intent: 'display' });
-}
-
 export async function renderPage(): Promise<void> {
   if (!doc) return;
   const mySeq = ++renderSeq;

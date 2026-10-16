@@ -9,21 +9,9 @@ import { renderRasterNode, rasterizeToNode } from './raster-node.ts';
 import { openPdf } from './pdfjs-node.ts';
 import { RASTER_SCALE } from '../engine/ports.ts';
 import { cvScan } from '../engine/scan-cv.ts';
-import { parseMarkups, type AnnotationLike } from '../engine/read.ts';
 import { blendOverlay } from '../engine/compare.ts';
 import { diffMask, maskRegions } from '../engine/diff.ts';
-import type { Markup, Pt } from '../engine/types.ts';
-
-/** Read pdf2takeoff-authored annotations from every page of an open doc. */
-export async function readMarkups(doc: PDFDocumentProxy): Promise<Markup[]> {
-  const markups: Markup[] = [];
-  for (let p = 1; p <= doc.numPages; p++) {
-    const page = await doc.getPage(p);
-    const annots = await page.getAnnotations({ intent: 'display' });
-    markups.push(...parseMarkups(annots as unknown as AnnotationLike[], p, markups.length));
-  }
-  return markups;
-}
+import type { Pt } from '../engine/types.ts';
 
 /** Tier-1 CV scan at a click point, in PDF points. */
 export async function scanDocAt(doc: PDFDocumentProxy, page: number, at: Pt) {

@@ -18,11 +18,12 @@ import { basename } from 'node:path';
 import { createCanvas } from '@napi-rs/canvas';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { readMarkups, scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
 import { statSync } from 'node:fs';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle, defaultLabel, nextId, distPt } from '../engine/geometry.ts';
 import { buildMatrix, toDelimited, xlsxBytes } from '../engine/export.ts';
 import { buildAnnotatedPdf } from '../engine/annotate.ts';
+import { readPdfMarkups } from '../engine/read.ts';
 import { toMeters } from '../engine/units.ts';
 import { parseScaleSpec } from './spec.ts';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
@@ -109,7 +110,7 @@ export async function runMcpServer(): Promise<void> {
       const bytes = new Uint8Array(readFileSync(path));
       const doc = await openPdf(bytes);
       const id = `doc-${++docSeq}`;
-      const markups = await readMarkups(doc);
+      const markups = await readPdfMarkups(bytes);
       const pages: { page: number; widthPt: number; heightPt: number }[] = [];
       for (let p = 1; p <= doc.numPages; p++) {
         const vp = (await doc.getPage(p)).getViewport({ scale: 1 });
