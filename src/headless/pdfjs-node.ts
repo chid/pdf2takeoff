@@ -7,6 +7,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createCanvas, type Canvas, type SKRSContext2D } from '@napi-rs/canvas';
 
 const require = createRequire(import.meta.url);
 
@@ -28,10 +29,44 @@ function standardFontsUrl(): string | undefined {
   }
 }
 
+interface CanvasAndContext {
+  canvas: Canvas | null;
+  context: SKRSContext2D | null;
+}
+
+// pdf.js paints images, patterns and soft masks onto scratch canvases from
+// its own canvas factory, which requires whichever @napi-rs/canvas copy sits
+// next to pdfjs-dist — not necessarily ours. Drawing a canvas from one native
+// copy into a context from another segfaults (every real drawing with a
+// raster logo in its title block did). Hand pdf.js a factory built on the
+// same @napi-rs/canvas the raster adapter renders with.
+class NapiCanvasFactory {
+  create(width: number, height: number): CanvasAndContext {
+    if (width <= 0 || height <= 0) throw new Error('Invalid canvas size');
+    const canvas = createCanvas(width, height);
+    return { canvas, context: canvas.getContext('2d') };
+  }
+
+  reset(cc: CanvasAndContext, width: number, height: number): void {
+    if (!cc.canvas) throw new Error('Canvas is not specified');
+    if (width <= 0 || height <= 0) throw new Error('Invalid canvas size');
+    cc.canvas.width = width;
+    cc.canvas.height = height;
+  }
+
+  destroy(cc: CanvasAndContext): void {
+    if (!cc.canvas) throw new Error('Canvas is not specified');
+    cc.canvas.width = cc.canvas.height = 0;
+    cc.canvas = null;
+    cc.context = null;
+  }
+}
+
 export async function openPdf(data: Uint8Array): Promise<PDFDocumentProxy> {
   return pdfjsLib.getDocument({
     data: data.slice(),
     verbosity: 0,
     standardFontDataUrl: standardFontsUrl(),
+    CanvasFactory: NapiCanvasFactory,
   }).promise;
 }

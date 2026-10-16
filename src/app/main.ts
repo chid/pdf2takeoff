@@ -211,7 +211,11 @@ $('nextPage').addEventListener('click', () => {
     emit();
   }
 });
-$('savePdfBtn').addEventListener('click', () => void saveAnnotatedPdf());
+$('savePdfBtn').addEventListener('click', () => {
+  saveAnnotatedPdf().catch((err) => {
+    $('toolHint').textContent = `Could not save markups into the PDF: ${err instanceof Error ? err.message : String(err)}`;
+  });
+});
 
 $('scaleBadge').addEventListener('click', () => setTool('calibrate'));
 

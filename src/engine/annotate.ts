@@ -9,6 +9,9 @@ import { formatLength, formatArea, formatVolume, type DisplayUnit } from './unit
 import { resolveCalibration, type Viewport } from './viewports.ts';
 
 export const ANNOTATION_AUTHOR = 'pdf2takeoff';
+export const ENCRYPTED_PDF_MESSAGE =
+  'this PDF is encrypted (edit-restricted), and pdf2takeoff cannot write markups into encrypted PDFs yet: export CSV or Excel instead';
+
 /** Private annotation key holding the markup's exact data as JSON, so a
  *  round-trip never has to parse the human-readable Contents text. */
 export const PAYLOAD_KEY = 'PDF2TakeoffMarkup';
@@ -118,7 +121,10 @@ export interface AnnotateOptions {
 /** Return a copy of the PDF with one standard annotation per markup,
  *  replacing any pdf2takeoff annotations already in it. */
 export async function buildAnnotatedPdf(opts: AnnotateOptions): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(opts.bytes.slice());
+  const pdfDoc = await PDFDocument.load(opts.bytes.slice(), { ignoreEncryption: true });
+  // edit-restricted council/consultant sets are common; pdf-lib can't
+  // re-encrypt them, so say so instead of leaking its load-time advice
+  if (pdfDoc.isEncrypted) throw new Error(ENCRYPTED_PDF_MESSAGE);
   pdfDoc.setProducer(PRODUCER);
   pdfDoc.setModificationDate(new Date());
 
