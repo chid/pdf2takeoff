@@ -33,6 +33,12 @@ Plus hand-checked facts under a set's `expect`:
 - `length`: two points and a scale must measure a printed dimension
 - `count`: scanning from one instance must find this many (the report also
   shows what the raster CV tier finds on its own, as a baseline)
+- `scale`: `pdf2takeoff scale` must read the printed scale (stated ratio,
+  paper, effective ratio; `null` = no page default) and, where given, reach
+  the dimension cross-check status and find hand-checked dimension ends.
+  `ocr` entries read outlined text with tesseract.js; the first run fetches
+  its English pack into `~/.cache/pdf2takeoff`, and they skip when that
+  can't be fetched.
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.

@@ -24,10 +24,21 @@ import { renderRasterNode } from '../../src/headless/raster-node.ts';
 import { cvScan } from '../../src/engine/scan-cv.ts';
 import { parseScaleSpec } from '../../src/headless/spec.ts';
 import { parsePages } from './pages.ts';
+import { ocrCacheDir } from '../../src/headless/ocr-node.ts';
 
 type Expectation = { page: number; what: string; knownIssue?: string } & (
   | { kind: 'length'; scale: string; points: [number, number][]; meters: number; tolerance: number }
   | { kind: 'count'; at: [number, number]; count: number }
+  | {
+      kind: 'scale';
+      stated: string | null;
+      paper: string | null;
+      effectiveRatio: number | null;
+      ocr?: boolean;
+      verified?: 'verified' | 'contradicted' | 'unverified';
+      /** hand-checked ends of printed dimensions the cross-check must find */
+      dimensions?: { text: string; from: [number, number]; to: [number, number] }[];
+    }
 );
 
 interface CouncilSet {
@@ -174,6 +185,34 @@ for (const set of manifest.sets) {
           const points = e.points.map(([x, y]) => ({ x, y }));
           const m = markupLength({ id: 'e', page: e.page, type: 'length', label: e.what, points, createdAt: 0 }, parseScaleSpec(e.scale));
           assert.ok(Math.abs(m - e.meters) <= e.tolerance, `measured ${m.toFixed(3)} m, printed ${e.meters} m`);
+        });
+      } else if (e.kind === 'scale') {
+        const label = e.stated ? `${e.stated}${e.paper ? ` @ ${e.paper}` : ''}` : 'no page scale';
+        await t.test(`p${e.page} reads ${label}${e.ocr ? ' (OCR)' : ''}: ${e.what}`, { todo }, (st) => {
+          const args = [join(root, 'bin', 'pdf2takeoff.js'), 'scale', file, '--page', String(e.page), '--details'];
+          if (e.ocr) args.push('--ocr');
+          const r = node(args);
+          if (e.ocr && r.status !== 0 && !existsSync(join(ocrCacheDir(), 'eng.traineddata'))) {
+            st.skip('OCR language pack not cached and could not be fetched (offline?)');
+            return;
+          }
+          assert.equal(r.status, 0, r.stderr.slice(-500));
+          const out = JSON.parse(r.stdout);
+          st.diagnostic(`stated ${out.stated} paper ${out.paper} effective ${out.effectiveRatio} source ${out.source}; dimensions ${out.verified.agreeing}/${out.verified.checked} agree (${out.verified.status})`);
+          assert.equal(out.stated, e.stated, `statements: ${JSON.stringify(out.statements)}; ${out.warnings.join(' | ')}`);
+          assert.equal(out.paper, e.paper);
+          if (e.effectiveRatio === null) assert.equal(out.effectiveRatio, null);
+          else assert.ok(Math.abs(out.effectiveRatio / e.effectiveRatio - 1) < 0.005, `effective ${out.effectiveRatio}`);
+          if (e.stated === null) assert.ok(out.warnings.length > 0, 'no page scale must say why');
+          if (e.verified) assert.equal(out.verified.status, e.verified, JSON.stringify(out.verified));
+          for (const d of e.dimensions ?? []) {
+            const near = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1]) <= 2;
+            const hit = out.dimensions.find(
+              (c: { text: string; from: number[]; to: number[] }) =>
+                c.text === d.text && ((near(c.from, d.from) && near(c.to, d.to)) || (near(c.from, d.to) && near(c.to, d.from))),
+            );
+            assert.ok(hit?.agrees, `${d.text}: no agreeing check between ${d.from} and ${d.to}`);
+          }
         });
       } else {
         await t.test(`p${e.page} scan counts ${e.count} × ${e.what}`, { todo }, async (st) => {

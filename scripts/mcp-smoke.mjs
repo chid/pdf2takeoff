@@ -73,8 +73,8 @@ console.log('ok: initialize');
 
 const tools = await request('tools/list', {});
 const names = tools.tools.map((t) => t.name);
-check('tools/list has all 11 tools', [
-  'open_document', 'render_page', 'set_scale', 'measure', 'scan_symbol',
+check('tools/list has all 12 tools', [
+  'open_document', 'render_page', 'set_scale', 'read_scale', 'measure', 'scan_symbol',
   'compare_revisions', 'list_markups', 'set_status', 'delete_markup', 'export', 'save_annotated',
 ].every((n) => names.includes(n)), `got: ${names.join(', ')}`);
 
@@ -89,6 +89,9 @@ check('render_page: image + metadata', !!img && img.mimeType === 'image/png', ''
 check('render_page: png bytes plausible', img.data.length > 10000, `base64 len ${img.data?.length}`);
 const meta = JSON.parse(rendered.content.find((c) => c.type === 'text' && c.text.startsWith('{')).text);
 check('render_page: 842x595pt sheet', meta.widthPt === 842 && meta.heightPt === 595);
+
+const read = textOf(await call('read_scale', { id: docId, page: 1 }));
+check('read_scale: title block 1:100 @ A4', read.stated === '1:100' && read.paper === 'A4' && read.effectiveRatio === 100, JSON.stringify(read));
 
 const scale = textOf(await call('set_scale', { id: docId, ratio: '1:100', all_pages: true }));
 check('set_scale: applied to all pages', scale.set.length === 2);

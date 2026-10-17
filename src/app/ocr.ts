@@ -2,9 +2,11 @@
 // the current page, and maps recognized words into PDF-point space for the
 // engine's calibration heuristics. The first run fetches the language pack
 // from a CDN (~4 MB, then cached) — everything after that is local.
+// pageTextWords reads the PDF's own live text instead: instant, no download.
 
 import { renderRaster } from './raster';
-import type { OcrWord } from '../engine/ocr';
+import { getPdfDoc } from './viewer';
+import { wordsFromTextItems, type SheetGeometry, type SheetWord, type TextItemLike } from '../engine/scale';
 
 let workerPromise: Promise<import('tesseract.js').Worker> | null = null;
 
@@ -16,8 +18,10 @@ async function getWorker() {
   return workerPromise;
 }
 
-export async function ocrPage(pageNum: number): Promise<OcrWord[]> {
-  const raster = await renderRaster(pageNum, 3);
+const OCR_SCALE = 3;
+
+export async function ocrPage(pageNum: number): Promise<SheetWord[]> {
+  const raster = await renderRaster(pageNum, OCR_SCALE);
   // the recognizer reads a canvas; rebuild one from the raster bytes
   const cnv = document.createElement('canvas');
   cnv.width = raster.width;
@@ -40,21 +44,40 @@ export async function ocrPage(pageNum: number): Promise<OcrWord[]> {
     }
   }
 
-  const words: OcrWord[] = [];
+  // upright text runs along the raster's x-axis; in PDF space that is
+  // rotated on /Rotate sheets, so carry the direction with each word
+  const o = raster.toPdf(0, 0);
+  const ex = raster.toPdf(1, 0);
+  const len = Math.hypot(ex.x - o.x, ex.y - o.y) || 1;
+  const dir = { x: (ex.x - o.x) / len, y: (ex.y - o.y) / len };
+
+  const words: SheetWord[] = [];
   for (const w of raw) {
     const text = w.text.trim();
     const b = w.bbox;
     if (!text || !b) continue;
-    const p0 = raster.toPdf(b.x0, b.y0);
-    const p1 = raster.toPdf(b.x1, b.y1);
+    const c = raster.toPdf((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2);
     words.push({
       text,
       conf: w.conf,
-      xPt: (p0.x + p1.x) / 2,
-      yPt: (p0.y + p1.y) / 2,
-      wPt: Math.abs(p1.x - p0.x),
-      hPt: Math.abs(p1.y - p0.y),
+      xPt: c.x,
+      yPt: c.y,
+      wPt: (b.x1 - b.x0) / OCR_SCALE,
+      hPt: (b.y1 - b.y0) / OCR_SCALE,
+      dir: { ...dir },
     });
   }
   return words;
+}
+
+/** The page's live text as positioned words, plus its geometry. */
+export async function pageTextWords(pageNum: number): Promise<{ words: SheetWord[]; sheet: SheetGeometry }> {
+  const doc = getPdfDoc();
+  if (!doc) throw new Error('open a drawing first');
+  const page = await doc.getPage(pageNum);
+  const tc = await page.getTextContent();
+  return {
+    words: wordsFromTextItems(tc.items.filter((i) => 'str' in i) as TextItemLike[]),
+    sheet: { view: page.view, rotate: page.rotate },
+  };
 }

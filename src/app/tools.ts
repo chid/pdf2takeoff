@@ -9,8 +9,9 @@ import { scanForSimilar } from '../engine/scan';
 import { syncUpsertMarkup, syncDeleteMarkup, syncCalibration } from './session';
 import { getActiveLayer, DEFAULT_LAYER } from './layers';
 import { PRESET_SCALES as SCALES } from '../engine/units';
-import { ocrPage } from './ocr';
-import { findScaleRatio, nearestDimensionValue } from '../engine/ocr';
+import { ocrPage, pageTextWords } from './ocr';
+import { nearestDimensionValue } from '../engine/ocr';
+import { readSheetScale, checkDimensions, type SheetWord, type SheetScale } from '../engine/scale';
 import { dynamicFill } from '../engine/dynamicfill';
 import { renderRaster } from './raster';
 import { scanDeps } from './adapters';
@@ -483,38 +484,60 @@ function applyDepth(): void {
   hint('Volume added · switch units any time in the toolbar');
 }
 
-/** OCR the sheet and either apply a title-block ratio or pre-fill the clicked dimension's value. */
+/**
+ * Read the sheet: pre-fill the clicked dimension's printed value, or apply
+ * the scale the sheet prints (title block, paper-size corrected) and
+ * cross-check it against the printed dimensions. The PDF's live text is
+ * tried first (instant, no download); OCR only when it has no answer.
+ */
 async function runOcrRead(): Promise<void> {
   const btn = document.getElementById('ocrReadBtn') as HTMLButtonElement;
   const old = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Reading… (first run fetches the OCR pack)';
+  btn.textContent = 'Reading…';
+  let ocrTried = false;
   try {
-    const words = await ocrPage(state.pageNum);
-    const scaleHit = findScaleRatio(words);
-
+    const { words: live, sheet } = await pageTextWords(state.pageNum);
     // with a clicked dimension, its printed label is the most direct answer
-    if (pendingCalib) {
+    const fillDimension = (words: SheetWord[]) => {
+      if (!pendingCalib) return false;
       const dim = nearestDimensionValue(words, pendingCalib.a, pendingCalib.b);
-      if (dim) {
-        calibInput.value = String(dim.value);
-        calibUnitSel.value = dim.unit;
-        calibInput.classList.remove('invalid');
-        hint(`Read "${dim.text}" next to your dimension — check it, then Apply scale`);
-        return;
-      }
+      if (!dim) return false;
+      calibInput.value = String(dim.value);
+      calibUnitSel.value = dim.unit;
+      calibInput.classList.remove('invalid');
+      hint(`Read "${dim.text}" next to your dimension — check it, then Apply scale`);
+      return true;
+    };
+    if (fillDimension(live)) return;
+
+    let words = live;
+    let reading: SheetScale = readSheetScale(live, sheet);
+    if (!reading.stated) {
+      btn.textContent = 'Reading… (first run fetches the OCR pack)';
+      ocrTried = true;
+      words = await ocrPage(state.pageNum);
+      if (fillDimension(words)) return;
+      reading = readSheetScale(words, sheet, { ocr: true });
     }
-    if (scaleHit) {
-      applyScaleToPages(metersPerPtForRatio(scaleHit.ratio), `${scaleHit.source} (sheet)`);
+    if (reading.stated && reading.metersPerPt !== null && reading.effectiveRatio !== null) {
+      const ratio = reading.effectiveRatio;
+      const paper = reading.statedPaper ? ` @ ${reading.statedPaper}` : '';
+      applyScaleToPages(reading.metersPerPt, `sheet 1:${reading.stated.ratio}${paper}${reading.sizeFactor !== 1 ? ` = 1:${ratio} here` : ''}`);
       closeCalibModal();
       renderMarkups();
       emit();
-      hint(`Scale 1:${scaleHit.ratio} read from the sheet · press L to measure`);
+      const vectors = scanDeps.vectors ? await scanDeps.vectors(state.pageNum).catch(() => null) : null;
+      const check = vectors ? checkDimensions(words, vectors, ratio) : null;
+      const verdict =
+        check && check.checked > 0 ? ` · ${check.agreeing} of ${check.checked} printed dimensions agree` : ' · not cross-checked';
+      const warn = reading.warnings.find((w) => !w.startsWith('paper size not stated'));
+      hint(`Scale 1:${ratio} read from the sheet${verdict}${warn ? ` · ${warn}` : ''}`);
       return;
     }
-    hint('Could not read a scale or dimension from this sheet — type the length manually');
+    hint(`${reading.warnings[0] ?? 'Could not read a scale or dimension from this sheet'} — type the length manually`);
   } catch {
-    hint('OCR failed — the first run needs internet to fetch the language pack');
+    hint(ocrTried ? 'OCR failed — the first run needs internet to fetch the language pack' : 'Could not read this sheet');
   } finally {
     btn.disabled = false;
     btn.textContent = old;

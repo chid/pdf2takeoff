@@ -18,7 +18,7 @@ import { basename } from 'node:path';
 import { createCanvas } from '@napi-rs/canvas';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, readDocScale } from './ops.ts';
 import { statSync } from 'node:fs';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle, defaultLabel, nextId, distPt } from '../engine/geometry.ts';
 import { buildMatrix, toDelimited, xlsxBytes } from '../engine/export.ts';
@@ -211,6 +211,39 @@ export async function runMcpServer(): Promise<void> {
       const pages = all_pages ? Array.from({ length: d.doc.numPages }, (_, i) => i + 1) : [page];
       for (const p of pages) d.calibrations.set(p, { metersPerPt, source });
       return text({ set: pages, metersPerPt: round(metersPerPt, 8), source });
+    },
+  );
+
+  server.registerTool(
+    'read_scale',
+    {
+      description:
+        'Read the scale each sheet prints (title block "SCALE 1:100 @ A3", viewport labels), correct it for the paper the sheet was issued on (an A1 drawing on A3 paper is 1:200, not 1:100), and cross-check it against the printed millimetre dimensions on the drawing. Returns per page: stated, paper, effectiveRatio, metersPerPt, verified {status, checked, agreeing}, every scale statement found, and warnings. apply=true calibrates each page that has a scale. Check the warnings and the verified status before trusting it; render_page to look when unsure.',
+      inputSchema: {
+        id: z.string(),
+        page: z.number().int().min(1).default(1),
+        all_pages: z.boolean().default(false),
+        ocr: z
+          .boolean()
+          .default(false)
+          .describe('OCR sheets whose text is drawn as outlines (slower; first use downloads a ~5 MB language pack)'),
+        apply: z.boolean().default(false).describe('set each page calibration to its effective scale'),
+        details: z.boolean().default(false).describe('include every dimension checked'),
+      },
+    },
+    async ({ id, page, all_pages, ocr, apply, details }) => {
+      const d = getDoc(id);
+      if (page > d.doc.numPages) throw new Error(`page ${page} out of range (1..${d.doc.numPages})`);
+      const pages = all_pages ? Array.from({ length: d.doc.numPages }, (_, i) => i + 1) : [page];
+      const results = [];
+      for (const p of pages) {
+        const r = await readDocScale(d.doc, p, { ocr, details });
+        if (apply && r.metersPerPt !== null) {
+          d.calibrations.set(p, { metersPerPt: r.metersPerPt, source: `sheet ${r.stated}${r.paper ? ` @ ${r.paper}` : ''}` });
+        }
+        results.push({ ...r, applied: apply && r.metersPerPt !== null });
+      }
+      return text(all_pages ? { pages: results } : results[0]);
     },
   );
 
@@ -453,6 +486,8 @@ export async function runMcpServer(): Promise<void> {
   );
 
   await server.connect(new StdioServerTransport());
+  // an OCR worker (read_scale ocr) would otherwise outlive the client
+  process.stdin.on('end', () => void import('./ocr-node.ts').then((m) => m.closeOcr()));
   // the transport keeps the process alive until the client closes stdin
 }
 
