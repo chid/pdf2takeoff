@@ -21,6 +21,7 @@ jobs:
       - run: npm run cli -- info public/examples/sample-floor-plan.pdf
       - run: npm run cli -- scan public/examples/sample-floor-plan.pdf --page 1 --at 88.35,271.42
       - run: node scripts/mcp-smoke.mjs
+      - run: node --experimental-strip-types scripts/roundtrip-check.mjs
       - name: Smoke the takeoff spec runner
         run: |
           cat > /tmp/takeoff.yaml <<'EOF'
