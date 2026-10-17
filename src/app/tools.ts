@@ -1,11 +1,12 @@
 // Tool state machine: calibrate, length, area, count, and selection.
 // Click geometry comes in as SVG overlay events, converted to PDF space.
 
-import { state, emit, nextId, type Pt, type Markup, defaultLabel, distPt } from './state';
+import { state, emit, nextId, type Pt, type Markup, defaultLabel, distPt, calibrationForMarkup, markupLength } from './state';
 import { eventToView, viewToPdf, isTypingTarget } from './viewer';
 import { renderMarkups, renderPreview, type PreviewSpec } from './render';
 import { compareState } from './compare';
 import { scanForSimilar } from '../engine/scan';
+import { lineRuns } from '../engine/runs';
 import { syncUpsertMarkup, syncDeleteMarkup, syncCalibration } from './session';
 import { getActiveLayer, DEFAULT_LAYER } from './layers';
 import { PRESET_SCALES as SCALES } from '../engine/units';
@@ -43,6 +44,7 @@ const HINTS: Record<string, string> = {
   fill: 'Click inside a room or slab — the fill reads its area off the walls',
   viewport: 'Outline a region drawn at a different scale (e.g. a 1:20 detail), then pick its scale',
   scan: 'Click one instance of a repeated symbol; the scan finds and counts every match on the page',
+  runs: 'Click a pipe or cable line; every run drawn in its style (colour, width, dash) on the page is measured',
 };
 
 let svg: SVGSVGElement;
@@ -121,7 +123,8 @@ export function setTool(tool: typeof state.tool): void {
   if (
     state.activePreset &&
     state.activePreset.type !== tool &&
-    !(tool === 'scan' && state.activePreset.type === 'count')
+    !(tool === 'scan' && state.activePreset.type === 'count') &&
+    !(tool === 'runs' && state.activePreset.type === 'length')
   ) {
     state.activePreset = null;
   }
@@ -130,7 +133,7 @@ export function setTool(tool: typeof state.tool): void {
   pendingCalib = null;
   svg.classList.toggle('drawing', tool !== 'pan');
   svg.style.cursor =
-    tool === 'pan' ? 'grab' : tool === 'count' ? 'copy' : tool === 'scan' ? 'zoom-in' : 'crosshair';
+    tool === 'pan' ? 'grab' : tool === 'count' ? 'copy' : tool === 'scan' || tool === 'runs' ? 'zoom-in' : 'crosshair';
   renderPreview(null);
   hint(HINTS[tool] ?? '');
   emit();
@@ -228,6 +231,9 @@ function onPointerDown(e: PointerEvent): void {
       break;
     case 'scan':
       void runScan(p);
+      break;
+    case 'runs':
+      void runRuns(p);
       break;
     case 'pan':
       state.selectedId = null;
@@ -360,6 +366,46 @@ async function runScan(p: Pt): Promise<void> {
       ? `Scan counted ${hits.length} × ${label} in ${ms} ms`
       : `Scan found ${hits.length} symbols in ${ms} ms; rename "Scanned symbol" in the list to group them`,
   );
+}
+
+/** Measure every run drawn in the style of the clicked line, as length
+ *  markups (each resolves its own viewport scale like a drawn length). */
+async function runRuns(p: Pt): Promise<void> {
+  const page = await scanDeps.vectors?.(state.pageNum);
+  if (!page) {
+    hint('This page has no vector lines to measure (a scanned sheet?)');
+    return;
+  }
+  const result = lineRuns(page, p);
+  if ('error' in result) {
+    hint(result.error);
+    return;
+  }
+  const label = state.activePreset?.type === 'length' ? state.activePreset.label : 'Line run';
+  let meters = 0;
+  let calibrated = true;
+  for (const run of result.runs) {
+    const m: Markup = {
+      id: nextId('mk'),
+      page: state.pageNum,
+      type: 'length',
+      layer: getActiveLayer() !== DEFAULT_LAYER ? getActiveLayer() : undefined,
+      label,
+      points: run.points,
+      createdAt: Date.now(),
+    };
+    state.markups.push(m);
+    syncUpsertMarkup(m);
+    const cal = calibrationForMarkup(m);
+    if (cal) meters += markupLength(m, cal.metersPerPt);
+    else calibrated = false;
+  }
+  state.lastAction = null;
+  setTool('pan');
+  renderMarkups();
+  emit();
+  const total = calibrated ? ` totalling ${meters.toFixed(2)} m` : ' (calibrate the page for metres)';
+  hint(`Measured ${result.runs.length} runs of ${result.style.stroke} line${total}; rename "${label}" in the list to group them`);
 }
 
 function finishDraft(): void {
@@ -610,6 +656,7 @@ function onKeyDown(e: KeyboardEvent): void {
     d: 'fill',
     w: 'viewport',
     s: 'scan',
+    r: 'runs',
   };
   const k = e.key.toLowerCase();
 

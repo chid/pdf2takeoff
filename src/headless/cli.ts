@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync, statSync, mkdirSync, readdirSync } from 'node:fs';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, runsDocAt } from './ops.ts';
 import { basename, join } from 'node:path';
 import { readPdfMarkups } from '../engine/read.ts';
 import { buildAnnotatedPdf } from '../engine/annotate.ts';
@@ -37,6 +37,11 @@ Usage:
       --all-pages teaches the symbol at --at on --page, then counts that
       symbol on every sheet (wherever it sits) and returns a per-page
       schedule with hits and a total.
+  pdf2takeoff runs <file.pdf> --page N --at x,y [--scale 1:200] [--gap pt]
+      Run lengths by line style: click one line (a dashed stormwater pipe,
+      say) and get every run drawn the same way (colour, width, dash) on
+      the page, as polylines with lengths in points, and in metres with
+      --scale. --gap overrides the longest dash gap bridged.
   pdf2takeoff export <file.pdf> [--scale 1:100] [--unit m] [--format csv|tsv|xlsx] [-o out]
       Read pdf2takeoff annotations back out as a quantities table.
       csv/tsv print to stdout without -o; xlsx requires -o.
@@ -115,6 +120,22 @@ const roundHit = (h: ScanHit) => ({
   y: Math.round(h.y * 100) / 100,
   ...(h.label !== undefined ? { label: h.label } : {}),
 });
+async function cmdRuns(file: string, pageArg: string, atArg: string, scale: string | undefined, gapArg: string | undefined): Promise<unknown> {
+  const page = parseInt(pageArg, 10);
+  if (!Number.isInteger(page) || page < 1) throw new Error('--page must be a positive integer');
+  const xy = atArg.split(',').map((v) => parseFloat(v));
+  if (xy.length !== 2 || !xy.every((v) => Number.isFinite(v))) {
+    throw new Error('--at must be "x,y" in PDF points');
+  }
+  const gap = gapArg === undefined ? undefined : parseFloat(gapArg);
+  if (gap !== undefined && !(gap >= 0)) throw new Error('--gap must be a length in PDF points');
+  const metersPerPt = scale ? parseScaleSpec(scale) : undefined;
+  const doc = await openPdf(readPdf(file));
+  if (page > doc.numPages) throw new Error(`--page ${page}: the document has ${doc.numPages} pages`);
+  const result = await runsDocAt(doc, page, { x: xy[0], y: xy[1] }, { metersPerPt, gap });
+  if ('error' in result) throw new Error(result.error);
+  return { file, page, scale: scale ?? null, ...result };
+}
 
 async function cmdCompare(fileA: string, fileB: string, png: string | undefined, pngDir: string | undefined, threshold: number): Promise<unknown> {
   // directory pair -> batch compare across the two revision folders
@@ -313,6 +334,16 @@ export async function run(argv: string[]): Promise<void> {
       });
       if (positionals.length !== 1 || !values.at) throw new Error('usage: pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages]');
       process.stdout.write(JSON.stringify(await cmdScan(positionals[0], values.page, values.at, values['all-pages']), null, 2) + '\n');
+      return;
+    }
+    if (cmd === 'runs') {
+      const { values, positionals } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: { page: { type: 'string', default: '1' }, at: { type: 'string' }, scale: { type: 'string' }, gap: { type: 'string' } },
+      });
+      if (positionals.length !== 1 || !values.at) throw new Error('usage: pdf2takeoff runs <file.pdf> --page N --at x,y [--scale 1:200] [--gap pt]');
+      process.stdout.write(JSON.stringify(await cmdRuns(positionals[0], values.page, values.at, values.scale, values.gap), null, 2) + '\n');
       return;
     }
     if (cmd === 'compare') {

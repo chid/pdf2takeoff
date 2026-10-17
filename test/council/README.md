@@ -36,6 +36,9 @@ Plus hand-checked facts under a set's `expect`:
 - `schedule`: teaching the symbol on `page` and counting it across the set
   (`scan --all-pages`) must find `counts[page]` on each listed page; list
   only pages you have looked at
+- `runs`: clicking one line, every run in its style must total this many
+  metres at the scale (check it against a render: the runs should cover the
+  line's ink and nothing else)
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.

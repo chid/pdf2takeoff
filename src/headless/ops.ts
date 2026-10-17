@@ -9,6 +9,7 @@ import { renderRasterNode, rasterizeToNode } from './raster-node.ts';
 import { openPdf, vectorPageNode } from './pdfjs-node.ts';
 import { countTemplate, scanForSimilar, teachSymbol } from '../engine/scan.ts';
 import type { ScanDeps } from '../engine/ports.ts';
+import { lineRuns } from '../engine/runs.ts';
 import { blendOverlay } from '../engine/compare.ts';
 import { diffMask, maskRegions } from '../engine/diff.ts';
 import type { Pt, ScanHit } from '../engine/types.ts';
@@ -23,6 +24,28 @@ function scanDeps(doc: PDFDocumentProxy): ScanDeps {
     renderRaster: (p, scale) => renderRasterNode(doc, p, scale),
     detector: async () => null,
     vectors: (p) => vectorPageNode(doc, p),
+  };
+}
+
+/** Every run drawn in the style of the line at a click point (PDF points),
+ *  with lengths in metres when a scale is given. */
+export async function runsDocAt(doc: PDFDocumentProxy, page: number, at: Pt, opts: { metersPerPt?: number; gap?: number } = {}) {
+  const result = lineRuns(await vectorPageNode(doc, page), at, { gap: opts.gap });
+  if ('error' in result) return result;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const m = opts.metersPerPt;
+  return {
+    style: result.style,
+    gapTolerancePt: r2(result.gapTolerance),
+    count: result.runs.length,
+    totalPt: r2(result.total),
+    ...(m ? { totalMeters: Math.round(result.total * m * 1000) / 1000 } : {}),
+    runs: result.runs.map((run) => ({
+      lengthPt: r2(run.length),
+      ...(m ? { meters: Math.round(run.length * m * 1000) / 1000 } : {}),
+      pieces: run.pieces,
+      points: run.points.map((p) => [r2(p.x), r2(p.y)]),
+    })),
   };
 }
 

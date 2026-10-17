@@ -18,7 +18,7 @@ import { basename } from 'node:path';
 import { createCanvas } from '@napi-rs/canvas';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, runsDocAt } from './ops.ts';
 import { statSync } from 'node:fs';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle, defaultLabel, nextId, distPt } from '../engine/geometry.ts';
 import { buildMatrix, toDelimited, xlsxBytes } from '../engine/export.ts';
@@ -324,6 +324,39 @@ export async function runMcpServer(): Promise<void> {
         label: result.hits[0]?.label ?? fallback,
         hits: result.hits.map((h) => ({ x: round(h.x), y: round(h.y) })),
       });
+    },
+  );
+
+  server.registerTool(
+    'measure_runs',
+    {
+      description:
+        'Run lengths by line style: give a point on one line (a dashed stormwater or sewer pipe, a cable) and every run drawn the same way (colour, width, dash) on the sheet is traced, dashes joined across their gaps, and added as length markups. Returns each run and the total, in metres once set_scale has run. Runs stop at pits and symbols on the line; a legend swatch drawn in the same style would count too.',
+      inputSchema: {
+        id: z.string(),
+        page: z.number().int().min(1).default(1),
+        at: ptTuple.describe('a point on the line, PDF points'),
+        label: z.string().optional().describe('label for the length markups'),
+        gap: z.number().nonnegative().optional().describe('longest dash gap to bridge, PDF points (default: measured from the drawing)'),
+      },
+    },
+    async ({ id, page, at, label, gap }) => {
+      const d = getDoc(id);
+      const cal = d.calibrations.get(page);
+      const result = await runsDocAt(d.doc, page, { x: at[0], y: at[1] }, { metersPerPt: cal?.metersPerPt, gap });
+      if ('error' in result) throw new Error(result.error);
+      const name = label ?? 'Line run';
+      for (const run of result.runs) {
+        d.markups.push({
+          id: nextId('mcp'),
+          page,
+          type: 'length',
+          label: name,
+          points: run.points.map(([x, y]) => ({ x, y })),
+          createdAt: Date.now(),
+        });
+      }
+      return text({ label: name, calibrated: !!cal, ...result });
     },
   );
 

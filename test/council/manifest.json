@@ -50,6 +50,38 @@
           "count": 2,
           "what": "15,000 L rainwater tanks (touching each other, a dashed boundary crosses one)",
           "source": "p6 Site Plan, counted by eye 2026-10-17"
+        },
+        {
+          "kind": "length",
+          "page": 6,
+          "scale": "1:200",
+          "points": [
+            [
+              94.58,
+              413.24
+            ],
+            [
+              808.41,
+              413.24
+            ]
+          ],
+          "meters": 50.37,
+          "tolerance": 0.02,
+          "what": "south boundary (confirms the 1:200 the runs check relies on)",
+          "source": "p6 Site Plan, printed boundary dimension 50.37; ends are the boundary stroke's own path 2026-10-17"
+        },
+        {
+          "kind": "runs",
+          "page": 6,
+          "at": [
+            333.0,
+            476.7
+          ],
+          "scale": "1:200",
+          "meters": 66.63,
+          "tolerance": 0.5,
+          "what": "stormwater (blue dashed, pre-broken dashes) total run length, key swatch excluded",
+          "source": "p6 Site Plan 2026-10-17: runs overlaid on a render and viewed; at 8 px/pt every #0000c6 pixel left of the key lies within 1 pt of a run except the 5 downpipe dots and the IO circle, and 71% of run length lies on ink (dash 6 pt / gap 4 pt); runs stop at pits"
         }
       ]
     },

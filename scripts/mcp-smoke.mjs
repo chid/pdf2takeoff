@@ -73,8 +73,8 @@ console.log('ok: initialize');
 
 const tools = await request('tools/list', {});
 const names = tools.tools.map((t) => t.name);
-check('tools/list has all 11 tools', [
-  'open_document', 'render_page', 'set_scale', 'measure', 'scan_symbol',
+check('tools/list has all 12 tools', [
+  'open_document', 'render_page', 'set_scale', 'measure', 'scan_symbol', 'measure_runs',
   'compare_revisions', 'list_markups', 'set_status', 'delete_markup', 'export', 'save_annotated',
 ].every((n) => names.includes(n)), `got: ${names.join(', ')}`);
 
@@ -176,6 +176,13 @@ check(
   folderCompare.totals.pairs === 2 && folderCompare.totals.changed === 1 && folderCompare.totals.unchanged === 1,
   JSON.stringify(folderCompare.totals),
 );
+
+// run lengths by line style: the sample's light grid, 7 lines across x 12 m
+// and 11 down x 8 m at 1:100
+const ran = textOf(await call('measure_runs', { id: docId, page: 1, at: [201.73, 200], label: 'Grid' }));
+check('measure_runs: 18 grid runs, 172 m', ran.count === 18 && Math.abs(ran.totalMeters - 172) < 0.1, `got ${ran.count}, ${ran.totalMeters} m`);
+const withRuns = textOf(await call('list_markups', { id: docId }));
+check('measure_runs: added as length markups', withRuns.markups.filter((m) => m.label === 'Grid' && m.type === 'length').length === 18);
 
 proc.kill();
 console.log('\nMCP smoke test: all steps passed');
