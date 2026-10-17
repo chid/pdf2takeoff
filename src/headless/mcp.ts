@@ -18,7 +18,7 @@ import { basename } from 'node:path';
 import { createCanvas } from '@napi-rs/canvas';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, nearHits } from './ops.ts';
 import { statSync } from 'node:fs';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle, defaultLabel, nextId, distPt } from '../engine/geometry.ts';
 import { buildMatrix, toDelimited, xlsxBytes } from '../engine/export.ts';
@@ -276,19 +276,21 @@ export async function runMcpServer(): Promise<void> {
     'scan_symbol',
     {
       description:
-        'Click-to-teach auto-count: give one instance of a repeated symbol (its centre in PDF points) and the scan (exact vector-path match where the symbol is drawn as vectors, else raster CV) finds and counts every match on the sheet, adding each as a count markup. With all_pages the symbol is taught on `page` and that same symbol is counted on every sheet wherever it sits, returning a per-page schedule. Look at render_page output first to pick a symbol.',
+        'Click-to-teach auto-count: give one instance of a repeated symbol (its centre in PDF points) and the scan (exact vector-path match where the symbol is drawn as vectors, else raster CV) finds and counts every match on the sheet, adding each as a count markup. With all_pages the symbol is taught on `page` and that same symbol is counted on every sheet wherever it sits, returning a per-page schedule. Look at render_page output first to pick a symbol. Vector hits that match the symbol\'s outline and ink but not its exact path (re-tessellated, or another sheet drawn at another scale) are near hits: they are counted, reported in `checks`, and their markups get status \'check\' for a human to confirm.',
       inputSchema: {
         id: z.string(),
         page: z.number().int().min(1).default(1),
         at: ptTuple.describe('a point on the symbol to teach from, PDF points'),
         label: z.string().optional().describe('label for the count markups'),
         all_pages: z.boolean().default(false).describe('teach on `page`, then count the taught symbol on every sheet and return a per-page schedule (hits added as count markups on their pages)'),
+        scale_tolerant: z.boolean().default(false).describe('also match the symbol at 0.5x-2x its size on the clicked sheet (e.g. trees drawn to their canopy); such hits are near hits to check'),
       },
     },
-    async ({ id, page, at, label, all_pages }) => {
+    async ({ id, page, at, label, all_pages, scale_tolerant }) => {
       const d = getDoc(id);
+      const opts = { scaleTolerant: scale_tolerant };
       if (all_pages) {
-        const { pages, ...rest } = await scanDocAllPages(d.doc, page, { x: at[0], y: at[1] });
+        const { pages, ...rest } = await scanDocAllPages(d.doc, page, { x: at[0], y: at[1] }, opts);
         for (const p of pages) {
           for (const hit of p.hits) {
             d.markups.push({
@@ -297,6 +299,7 @@ export async function runMcpServer(): Promise<void> {
               type: 'count',
               label: label ?? 'Scanned symbol',
               points: [{ x: hit.x, y: hit.y }],
+              ...(hit.match === 'near' ? { status: 'check' as const } : {}),
               createdAt: Date.now(),
             });
           }
@@ -305,7 +308,7 @@ export async function runMcpServer(): Promise<void> {
         const schedule = { ...rest, pages: pages.map(({ hits: _, ...p }) => p) };
         return text({ schedule, label: label ?? 'Scanned symbol' });
       }
-      const result = await scanDocAt(d.doc, page, { x: at[0], y: at[1] });
+      const result = await scanDocAt(d.doc, page, { x: at[0], y: at[1] }, opts);
       if ('error' in result) throw new Error(result.error);
       const fallback = label ?? 'Scanned symbol';
       for (const hit of result.hits) {
@@ -315,14 +318,16 @@ export async function runMcpServer(): Promise<void> {
           type: 'count',
           label: hit.label ?? fallback,
           points: [{ x: hit.x, y: hit.y }],
+          ...(hit.match === 'near' ? { status: 'check' as const } : {}),
           createdAt: Date.now(),
         });
       }
       return text({
         count: result.hits.length,
+        checks: nearHits(result.hits),
         provider: result.provider,
         label: result.hits[0]?.label ?? fallback,
-        hits: result.hits.map((h) => ({ x: round(h.x), y: round(h.y) })),
+        hits: result.hits.map((h) => ({ x: round(h.x), y: round(h.y), ...(h.match === 'near' ? { match: h.match, scale: h.scale } : {}) })),
       });
     },
   );

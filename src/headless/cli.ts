@@ -5,7 +5,8 @@ import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync, statSync, mkdirSync, readdirSync } from 'node:fs';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, nearHits } from './ops.ts';
+import type { ScanOptions } from '../engine/scan.ts';
 import { basename, join } from 'node:path';
 import { readPdfMarkups } from '../engine/read.ts';
 import { buildAnnotatedPdf } from '../engine/annotate.ts';
@@ -30,13 +31,20 @@ Usage:
       revision sets, with added/removed sheets listed. --png writes the
       overlay of the first changed sheet; --png-dir (folder mode) writes
       an overlay per changed pair.
-  pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages]
+  pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages] [--scale-tolerant | --exact-only]
       Click-point auto-count: every match on the page as JSON (vector
       paths where the symbol is drawn as vectors, else raster CV).
       --at is in PDF points; run "info" first to see page sizes.
       --all-pages teaches the symbol at --at on --page, then counts that
       symbol on every sheet (wherever it sits) and returns a per-page
       schedule with hits and a total.
+      Vector hits carry match "exact" or "near": a near hit has the
+      symbol's outline and ink but not its exact path (re-tessellated, or
+      on another sheet drawn at another scale; see "scale"), and is
+      counted in "checks" for checking by eye.
+      --scale-tolerant also matches the symbol at 0.5x-2x its size on the
+      clicked sheet (trees drawn to their canopy); --exact-only drops near
+      hits.
   pdf2takeoff export <file.pdf> [--scale 1:100] [--unit m] [--format csv|tsv|xlsx] [-o out]
       Read pdf2takeoff annotations back out as a quantities table.
       csv/tsv print to stdout without -o; xlsx requires -o.
@@ -83,7 +91,7 @@ async function cmdInfo(file: string): Promise<unknown> {
   };
 }
 
-async function cmdScan(file: string, pageArg: string, atArg: string, allPages: boolean): Promise<unknown> {
+async function cmdScan(file: string, pageArg: string, atArg: string, allPages: boolean, opts: ScanOptions): Promise<unknown> {
   const page = parseInt(pageArg, 10);
   if (!Number.isInteger(page) || page < 1) throw new Error('--page must be a positive integer');
   const xy = atArg.split(',').map((v) => parseFloat(v));
@@ -92,20 +100,21 @@ async function cmdScan(file: string, pageArg: string, atArg: string, allPages: b
   }
   const doc = await openPdf(readPdf(file));
   if (allPages) {
-    const schedule = await scanDocAllPages(doc, page, { x: xy[0], y: xy[1] });
+    const schedule = await scanDocAllPages(doc, page, { x: xy[0], y: xy[1] }, opts);
     return {
       file,
       ...schedule,
       pages: schedule.pages.map((p) => ({ ...p, hits: p.hits.map(roundHit) })),
     };
   }
-  const result = await scanDocAt(doc, page, { x: xy[0], y: xy[1] });
+  const result = await scanDocAt(doc, page, { x: xy[0], y: xy[1] }, opts);
   if ('error' in result) throw new Error(result.error);
   return {
     file,
     page,
     provider: result.provider,
     count: result.hits.length,
+    checks: nearHits(result.hits),
     hits: result.hits.map(roundHit),
   };
 }
@@ -114,6 +123,9 @@ const roundHit = (h: ScanHit) => ({
   x: Math.round(h.x * 100) / 100,
   y: Math.round(h.y * 100) / 100,
   ...(h.label !== undefined ? { label: h.label } : {}),
+  ...(h.match !== undefined ? { match: h.match } : {}),
+  ...(h.scale !== undefined ? { scale: h.scale } : {}),
+  ...(h.score !== undefined ? { score: Math.round(h.score * 1000) / 1000 } : {}),
 });
 
 async function cmdCompare(fileA: string, fileB: string, png: string | undefined, pngDir: string | undefined, threshold: number): Promise<unknown> {
@@ -309,10 +321,20 @@ export async function run(argv: string[]): Promise<void> {
       const { values, positionals } = parseArgs({
         args: rest,
         allowPositionals: true,
-        options: { page: { type: 'string', default: '1' }, at: { type: 'string' }, 'all-pages': { type: 'boolean', default: false } },
+        options: {
+          page: { type: 'string', default: '1' },
+          at: { type: 'string' },
+          'all-pages': { type: 'boolean', default: false },
+          'scale-tolerant': { type: 'boolean', default: false },
+          'exact-only': { type: 'boolean', default: false },
+        },
       });
-      if (positionals.length !== 1 || !values.at) throw new Error('usage: pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages]');
-      process.stdout.write(JSON.stringify(await cmdScan(positionals[0], values.page, values.at, values['all-pages']), null, 2) + '\n');
+      if (positionals.length !== 1 || !values.at) {
+        throw new Error('usage: pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages] [--scale-tolerant | --exact-only]');
+      }
+      if (values['scale-tolerant'] && values['exact-only']) throw new Error('--scale-tolerant and --exact-only exclude each other');
+      const opts = { scaleTolerant: values['scale-tolerant'], exactOnly: values['exact-only'] };
+      process.stdout.write(JSON.stringify(await cmdScan(positionals[0], values.page, values.at, values['all-pages'], opts), null, 2) + '\n');
       return;
     }
     if (cmd === 'compare') {

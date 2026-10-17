@@ -27,8 +27,8 @@ import { parsePages } from './pages.ts';
 
 type Expectation = { page: number; what: string; knownIssue?: string } & (
   | { kind: 'length'; scale: string; points: [number, number][]; meters: number; tolerance: number }
-  | { kind: 'count'; at: [number, number]; count: number }
-  | { kind: 'schedule'; at: [number, number]; counts: Record<string, number> }
+  | { kind: 'count'; at: [number, number]; count: number; checks?: number; flags?: string[] }
+  | { kind: 'schedule'; at: [number, number]; counts: Record<string, number>; checks?: Record<string, number> }
 );
 
 interface CouncilSet {
@@ -184,8 +184,11 @@ for (const set of manifest.sets) {
           assert.equal(r.status, 0, r.stderr);
           const out = JSON.parse(r.stdout);
           const got = Object.fromEntries(Object.keys(e.counts).map((p) => [p, out.pages[Number(p) - 1].count]));
-          st.diagnostic(`${out.provider} tier, ${out.total} across the set`);
+          st.diagnostic(`${out.provider} tier, ${out.total} across the set, ${out.checks} to check`);
           assert.deepEqual(got, e.counts);
+          // near hits (status 'check'): exactly the listed ones, none elsewhere
+          const checks = Object.fromEntries(Object.keys(e.counts).map((p) => [p, out.pages[Number(p) - 1].checks]));
+          assert.deepEqual(checks, Object.fromEntries(Object.keys(e.counts).map((p) => [p, e.checks?.[p] ?? 0])));
         });
         continue;
       }
@@ -197,14 +200,15 @@ for (const set of manifest.sets) {
         });
       } else {
         await t.test(`p${e.page} scan counts ${e.count} × ${e.what}`, { todo }, async (st) => {
-          const r = node([join(root, 'bin', 'pdf2takeoff.js'), 'scan', file, '--page', String(e.page), '--at', e.at.join(',')]);
+          const r = node([join(root, 'bin', 'pdf2takeoff.js'), 'scan', file, '--page', String(e.page), '--at', e.at.join(','), ...(e.flags ?? [])]);
           assert.equal(r.status, 0, r.stderr);
           const out = JSON.parse(r.stdout);
           // the raster tier on its own, for comparison
           const raster = await renderRasterNode(await openPdf(bytes), e.page, RASTER_SCALE);
           const cv = cvScan(raster, { x: e.at[0], y: e.at[1] });
-          st.diagnostic(`${out.provider} tier: ${out.count}; raster CV alone: ${'error' in cv ? cv.error : cv.hits.length}`);
+          st.diagnostic(`${out.provider} tier: ${out.count} (${out.checks} to check); raster CV alone: ${'error' in cv ? cv.error : cv.hits.length}`);
           assert.equal(out.count, e.count);
+          assert.equal(out.checks ?? 0, e.checks ?? 0, 'near hits (to check)');
         });
       }
     }

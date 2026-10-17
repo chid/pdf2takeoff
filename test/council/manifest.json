@@ -1,5 +1,5 @@
 {
-  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff cannot write into those yet; the suite asserts it fails clearly). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff cannot write into those yet; the suite asserts it fails clearly). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. Counts include the vector tier's near hits (outline and ink match, no exact path; flagged status 'check'): \"checks\" says how many of them must be near hits (default none), \"flags\" adds scan options. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
   "sets": [
     {
       "id": "kingborough-da-2024-64",
@@ -13,7 +13,24 @@
       "drawingPages": "3-8",
       "rotatedPages": "",
       "encrypted": true,
-      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; permissions allow annotating, but pdf-lib cannot write encrypted files."
+      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; permissions allow annotating, but pdf-lib cannot write encrypted files.",
+      "expect": [
+        {
+          "kind": "count",
+          "page": 4,
+          "at": [
+            938.4,
+            523.8
+          ],
+          "flags": [
+            "--scale-tolerant"
+          ],
+          "count": 11,
+          "checks": 10,
+          "what": "trees (one block scaled to each canopy, 0.67x-1.1x of the clicked one, every circle a ring of loose segments); the 12th, at 781,597, is 2.2x and outside the --scale-tolerant band, where the north point (128,123) would match too",
+          "source": "p4 Overall Site Plan rendered with the hits ringed and checked by eye (12 trees on the sheet), 2026-10-17"
+        }
+      ]
     },
     {
       "id": "sorell-5-2025-2",
@@ -36,9 +53,10 @@
             115.0,
             656.9
           ],
-          "count": 4,
-          "what": "450 stormwater pits on the plan (not the legend's sample)",
-          "source": "p6 Site Plan, counted by eye 2026-10-17"
+          "count": 5,
+          "what": "450 stormwater pits: 4 on the plan exact, plus the legend's sample as a near hit to check (same square-and-cross, its vertices drawn in another order)",
+          "source": "p6 Site Plan, counted by eye 2026-10-17; legend sample at 996,284 checked at 6x, 2026-10-17",
+          "checks": 1
         },
         {
           "kind": "count",
@@ -197,6 +215,7 @@
           ],
           "counts": {
             "37": 0,
+            "38": 1,
             "39": 0,
             "40": 1,
             "41": 1,
@@ -209,8 +228,11 @@
             "48": 0,
             "49": 0
           },
-          "what": "north points (upright on pp40-41, turned on pp42-46; none on the title page, layout or elevations)",
-          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
+          "what": "north points (upright on pp40-41, turned on pp42-46, drawn 6.6% larger on 1:3000 sheet p38 (a near hit); none on the title page, layout or elevations)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17; p38 checked at 4x, 2026-10-17",
+          "checks": {
+            "38": 1
+          }
         },
         {
           "kind": "schedule",
@@ -223,9 +245,12 @@
             "38": 1,
             "39": 1
           },
-          "what": "drawing-title bubbles on the 1:3000 site sheets",
+          "what": "drawing-title bubbles on the 1:3000 site sheets (drawn 31.3 pt across vs 29.3 pt: near hits at scale 1.065)",
           "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
-          "knownIssue": "drawn 31.3 pt across there vs 29.3 pt on the 1:100 sheets; the vector tier matches a block at its taught size only"
+          "checks": {
+            "38": 1,
+            "39": 1
+          }
         },
         {
           "kind": "schedule",
@@ -237,9 +262,8 @@
           "counts": {
             "36": 0
           },
-          "what": "no drawing-title bubble on hydraulic sheet H07",
-          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
-          "knownIssue": "a same-size pipe circle with a leader arrowhead at its centre passes the ink check (own 0.775 vs COVER_OWN 0.75)"
+          "what": "no drawing-title bubble on hydraulic sheet H07 (a same-size pipe circle with a leader arrowhead at its centre passes the coarse ink check, not the fine one)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
         }
       ]
     }
