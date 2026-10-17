@@ -11,7 +11,7 @@ import type { CustomColumn, TakeoffData } from '../engine/export';
 export type { Calibration, Markup, MarkupType, Pt };
 export { markupLength, markupArea, distPt, defaultLabel, nextId } from '../engine/geometry';
 
-export type ToolId = 'pan' | 'calibrate' | 'viewport' | 'length' | 'area' | 'count' | 'perimeter' | 'volume' | 'angle' | 'note' | 'fill' | 'scan';
+export type ToolId = 'pan' | 'calibrate' | 'viewport' | 'length' | 'area' | 'count' | 'perimeter' | 'volume' | 'angle' | 'note' | 'fill' | 'scan' | 'runs';
 
 export interface ToolPreset {
   type: MarkupType;

@@ -28,6 +28,7 @@ import { parsePages } from './pages.ts';
 type Expectation = { page: number; what: string; knownIssue?: string } & (
   | { kind: 'length'; scale: string; points: [number, number][]; meters: number; tolerance: number }
   | { kind: 'count'; at: [number, number]; count: number }
+  | { kind: 'runs'; at: [number, number]; scale: string; meters: number; tolerance: number }
 );
 
 interface CouncilSet {
@@ -174,6 +175,14 @@ for (const set of manifest.sets) {
           const points = e.points.map(([x, y]) => ({ x, y }));
           const m = markupLength({ id: 'e', page: e.page, type: 'length', label: e.what, points, createdAt: 0 }, parseScaleSpec(e.scale));
           assert.ok(Math.abs(m - e.meters) <= e.tolerance, `measured ${m.toFixed(3)} m, printed ${e.meters} m`);
+        });
+      } else if (e.kind === 'runs') {
+        await t.test(`p${e.page} runs total ${e.meters} m at ${e.scale}: ${e.what}`, { todo }, (st) => {
+          const r = node([join(root, 'bin', 'pdf2takeoff.js'), 'runs', file, '--page', String(e.page), '--at', e.at.join(','), '--scale', e.scale]);
+          assert.equal(r.status, 0, r.stderr);
+          const out = JSON.parse(r.stdout);
+          st.diagnostic(`${out.count} runs of ${out.style.stroke} w${out.style.width}, gap ${out.gapTolerancePt} pt`);
+          assert.ok(Math.abs(out.totalMeters - e.meters) <= e.tolerance, `measured ${out.totalMeters} m, expected ${e.meters} m`);
         });
       } else {
         await t.test(`p${e.page} scan counts ${e.count} × ${e.what}`, { todo }, async (st) => {

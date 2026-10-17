@@ -20,12 +20,31 @@ export interface VectorPath {
   y0: number;
   x1: number;
   y1: number;
+  /** Index into VectorPage.styles: how the path was painted. */
+  style: number;
+}
+
+/** How a path was painted. Paths painted alike share one entry. */
+export interface PathStyle {
+  /** Stroked, filled or both (a fill-and-stroke counts as both). */
+  stroked: boolean;
+  filled: boolean;
+  /** '#rrggbb', or 'pattern' / 'none' for pattern and transparent colour;
+   *  null for the side that isn't painted. */
+  stroke: string | null;
+  fill: string | null;
+  /** Stroke width and dash pattern in PDF points, after the CTM (a zero
+   *  width is the device's thinnest line). Empty dash = solid. */
+  width: number;
+  dash: number[];
+  dashPhase: number;
 }
 
 export interface VectorPage {
   /** Page view box [x0, y0, x1, y1] in PDF points. */
   view: number[];
   paths: VectorPath[];
+  styles: PathStyle[];
 }
 
 /** pdf.js getOperatorList() output, accessed structurally. */
@@ -44,7 +63,20 @@ export type PdfOps = Record<
   | 'paintFormXObjectBegin'
   | 'paintFormXObjectEnd'
   | 'beginGroup'
-  | 'endGroup',
+  | 'endGroup'
+  | 'stroke'
+  | 'closeStroke'
+  | 'fill'
+  | 'eoFill'
+  | 'setLineWidth'
+  | 'setDash'
+  | 'setGState'
+  | 'setStrokeRGBColor'
+  | 'setStrokeTransparent'
+  | 'setStrokeColorN'
+  | 'setFillRGBColor'
+  | 'setFillTransparent'
+  | 'setFillColorN',
   number
 >;
 
@@ -64,14 +96,74 @@ const multiply = (m: Matrix, n: Matrix): Matrix => [
 const isMatrix = (v: unknown): v is Matrix =>
   (Array.isArray(v) || ArrayBuffer.isView(v)) && (v as ArrayLike<number>).length === 6;
 
-/** Replay a page's operator list into paths in PDF user space. */
+/** The graphics state vectorPage() follows: the CTM and how paths paint. */
+interface GState {
+  ctm: Matrix;
+  stroke: string;
+  fill: string;
+  lineWidth: number;
+  dash: number[];
+  dashPhase: number;
+}
+
+const INITIAL: GState = { ctm: IDENTITY, stroke: '#000000', fill: '#000000', lineWidth: 1, dash: [], dashPhase: 0 };
+const colour = (args: unknown[] | null) => (typeof args?.[0] === 'string' ? (args[0] as string) : 'none');
+const round4 = (v: number) => Math.round(v * 1e4) / 1e4;
+
+/** A dash array and phase as pdf.js passes them (setDash, ExtGState D). */
+function dashOf(arr: unknown, phase: unknown): Partial<GState> {
+  const dash = Array.isArray(arr) || ArrayBuffer.isView(arr) ? Array.from(arr as ArrayLike<number>).filter(Number.isFinite) : [];
+  // an all-zero pattern draws solid
+  return { dash: dash.some((d) => d > 0) ? dash : [], dashPhase: typeof phase === 'number' ? phase : 0 };
+}
+
+/** Replay a page's operator list into paths in PDF user space, with how
+ *  each was painted. pdf.js has already turned every colour space into
+ *  '#rrggbb' (setStrokeRGBColor / setFillRGBColor) and ExtGState
+ *  dictionaries into setGState [key, value] pairs. */
 export function vectorPage(view: number[], ops: OperatorListLike, OPS: PdfOps): VectorPage {
   const paths: VectorPath[] = [];
-  const stack: Matrix[] = [];
-  let ctm: Matrix = IDENTITY;
-  const push = () => stack.push(ctm);
+  const styles: PathStyle[] = [];
+  const styleIds = new Map<string, number>();
+  const stack: GState[] = [];
+  let gs: GState = INITIAL;
+  // the last path's style stays valid until the state or the paint op changes
+  let cached = -1;
+  let cachedPaint = -1;
+  const set = (patch: Partial<GState>) => {
+    gs = { ...gs, ...patch };
+    cached = -1;
+  };
+  const push = () => stack.push(gs);
   const pop = () => {
-    ctm = stack.pop() ?? IDENTITY;
+    gs = stack.pop() ?? INITIAL;
+    cached = -1;
+  };
+  const styleOf = (paint: number): number => {
+    if (cached >= 0 && cachedPaint === paint) return cached;
+    const stroked = paint !== OPS.fill && paint !== OPS.eoFill;
+    const filled = paint !== OPS.stroke && paint !== OPS.closeStroke;
+    // widths and dashes scale with the CTM (by its mean scale factor)
+    const k = Math.sqrt(Math.abs(gs.ctm[0] * gs.ctm[3] - gs.ctm[1] * gs.ctm[2]));
+    const style: PathStyle = {
+      stroked,
+      filled,
+      stroke: stroked ? gs.stroke : null,
+      fill: filled ? gs.fill : null,
+      width: stroked ? round4(gs.lineWidth * k) : 0,
+      dash: stroked ? gs.dash.map((d) => round4(d * k)) : [],
+      dashPhase: stroked && gs.dash.length ? round4(gs.dashPhase * k) : 0,
+    };
+    const key = `${+stroked}${+filled}|${style.stroke}|${style.fill}|${style.width}|${style.dash.join(',')}|${style.dashPhase}`;
+    let id = styleIds.get(key);
+    if (id === undefined) {
+      id = styles.length;
+      styles.push(style);
+      styleIds.set(key, id);
+    }
+    cached = id;
+    cachedPaint = paint;
+    return id;
   };
 
   for (let i = 0; i < ops.fnArray.length; i++) {
@@ -79,30 +171,44 @@ export function vectorPage(view: number[], ops: OperatorListLike, OPS: PdfOps): 
     const args = ops.argsArray[i] as unknown[] | null;
     if (fn === OPS.save) push();
     else if (fn === OPS.restore) pop();
-    else if (fn === OPS.transform && args && args.length === 6) ctm = multiply(ctm, args as unknown as Matrix);
+    else if (fn === OPS.transform && args && args.length === 6) set({ ctm: multiply(gs.ctm, args as unknown as Matrix) });
     else if (fn === OPS.paintFormXObjectBegin) {
       push();
-      if (args && isMatrix(args[0])) ctm = multiply(ctm, Array.from(args[0]) as Matrix);
+      if (args && isMatrix(args[0])) set({ ctm: multiply(gs.ctm, Array.from(args[0]) as Matrix) });
     } else if (fn === OPS.paintFormXObjectEnd) pop();
     else if (fn === OPS.beginGroup) {
       push();
       const m = (args?.[0] as { matrix?: unknown } | undefined)?.matrix;
-      if (isMatrix(m)) ctm = multiply(ctm, Array.from(m) as Matrix);
+      if (isMatrix(m)) set({ ctm: multiply(gs.ctm, Array.from(m) as Matrix) });
     } else if (fn === OPS.endGroup) pop();
     else if (fn === OPS.constructPath && args) {
       // [paintOp, [pathData], minMax]; endPath only sets a clip, paints nothing
       if (args[0] === OPS.endPath) continue;
       const data = (args[1] as unknown[] | undefined)?.[0];
       if (!data || !ArrayBuffer.isView(data)) continue;
-      const p = toPath(data as unknown as ArrayLike<number>, ctm);
+      const p = toPath(data as unknown as ArrayLike<number>, gs.ctm, styleOf(args[0] as number));
       if (p) paths.push(p);
+    } else if (fn === OPS.setStrokeRGBColor) set({ stroke: colour(args) });
+    else if (fn === OPS.setFillRGBColor) set({ fill: colour(args) });
+    else if (fn === OPS.setStrokeTransparent) set({ stroke: 'none' });
+    else if (fn === OPS.setFillTransparent) set({ fill: 'none' });
+    else if (fn === OPS.setStrokeColorN) set({ stroke: 'pattern' });
+    else if (fn === OPS.setFillColorN) set({ fill: 'pattern' });
+    else if (fn === OPS.setLineWidth && typeof args?.[0] === 'number') set({ lineWidth: args[0] });
+    else if (fn === OPS.setDash && args) set(dashOf(args[0], args[1]));
+    else if (fn === OPS.setGState && Array.isArray(args?.[0])) {
+      for (const entry of args[0] as unknown[]) {
+        if (!Array.isArray(entry)) continue;
+        if (entry[0] === 'LW' && typeof entry[1] === 'number') set({ lineWidth: entry[1] });
+        else if (entry[0] === 'D' && Array.isArray(entry[1])) set(dashOf(entry[1][0], entry[1][1]));
+      }
     }
   }
 
-  return { view, paths };
+  return { view, paths, styles };
 }
 
-function toPath(data: ArrayLike<number>, m: Matrix): VectorPath | null {
+function toPath(data: ArrayLike<number>, m: Matrix, style: number): VectorPath | null {
   let cmds = '';
   const pts: number[] = [];
   const add = (x: number, y: number) => pts.push(m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]);
@@ -142,7 +248,7 @@ function toPath(data: ArrayLike<number>, m: Matrix): VectorPath | null {
     y0 = Math.min(y0, pts[k + 1]);
     y1 = Math.max(y1, pts[k + 1]);
   }
-  return { cmds, pts: Float64Array.from(pts), x0, y0, x1, y1 };
+  return { cmds, pts: Float64Array.from(pts), x0, y0, x1, y1, style };
 }
 
 // ---------------------------------------------------------------------------

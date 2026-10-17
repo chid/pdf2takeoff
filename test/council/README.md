@@ -33,6 +33,9 @@ Plus hand-checked facts under a set's `expect`:
 - `length`: two points and a scale must measure a printed dimension
 - `count`: scanning from one instance must find this many (the report also
   shows what the raster CV tier finds on its own, as a baseline)
+- `runs`: clicking one line, every run in its style must total this many
+  metres at the scale (check it against a render: the runs should cover the
+  line's ink and nothing else)
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.

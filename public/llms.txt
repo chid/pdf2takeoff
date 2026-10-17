@@ -16,7 +16,7 @@ Key facts:
 - Revision compare: overlay two revisions in the browser (red = removed, blue = added, dark = unchanged); from the CLI, compare two PDFs or batch-compare two revision folders (sheets paired by filename, added/removed sheets listed, overlay PNG per changed pair)
 - Headless CLI (Node ≥ 22.6): info, scan, compare (files or folders), export, annotate, run, mcp — deterministic JSON output, no network calls
 - Takeoff-as-code: a committed takeoff.yaml (scale + click-point counts + exports) regenerates quantities via `pdf2takeoff run`; run with --prev to diff quantities against the previous revision's run
-- MCP server: eleven local stdio tools (open_document, render_page, set_scale, measure, scan_symbol, compare_revisions, list_markups, set_status, delete_markup, export, save_annotated) so AI agents can run a full takeoff and hand back a marked-up PDF for human review
+- MCP server: twelve local stdio tools (open_document, render_page, set_scale, measure, scan_symbol, measure_runs, compare_revisions, list_markups, set_status, delete_markup, export, save_annotated) so AI agents can run a full takeoff and hand back a marked-up PDF for human review
 - Limitations today: no live multi-user sessions yet; the in-browser ONNX detector for cluttered sheets (symbols touching lines) is wired up and waiting on a trained model; until one ships, the scan uses classic CV
 - Stack: PDF.js (Apache-2.0) for rendering, pdf-lib (MIT) for writing annotations, tesseract.js (Apache-2.0) for OCR; no backend, deployable as a static site
 
