@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync, statSync, mkdirSync, readdirSync } from 'node:fs';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, runsDocAt } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, runsDocAt, readDocScale } from './ops.ts';
 import { basename, join } from 'node:path';
 import { readPdfMarkups } from '../engine/read.ts';
 import { buildAnnotatedPdf } from '../engine/annotate.ts';
@@ -42,6 +42,14 @@ Usage:
       say) and get every run drawn the same way (colour, width, dash) on
       the page, as polylines with lengths in points, and in metres with
       --scale. --gap overrides the longest dash gap bridged.
+  pdf2takeoff scale <file.pdf> [--page N | --all-pages] [--ocr] [--details]
+      Read the scale each sheet prints (title block "SCALE 1:100 @ A3",
+      viewport labels), correct it for the paper size the sheet was issued
+      on, and cross-check it against the printed dimensions. JSON per page:
+      stated, paper, effectiveRatio, metersPerPt, verified, warnings.
+      --ocr reads sheets whose text is outlines (tesseract.js; the first run
+      downloads its ~5 MB English pack to ~/.cache/pdf2takeoff).
+      --details lists every dimension checked.
   pdf2takeoff export <file.pdf> [--scale 1:100] [--unit m] [--format csv|tsv|xlsx] [-o out]
       Read pdf2takeoff annotations back out as a quantities table.
       csv/tsv print to stdout without -o; xlsx requires -o.
@@ -135,6 +143,22 @@ async function cmdRuns(file: string, pageArg: string, atArg: string, scale: stri
   const result = await runsDocAt(doc, page, { x: xy[0], y: xy[1] }, { metersPerPt, gap });
   if ('error' in result) throw new Error(result.error);
   return { file, page, scale: scale ?? null, ...result };
+}
+
+async function cmdScale(file: string, pageArg: string, allPages: boolean, ocr: boolean, details: boolean): Promise<unknown> {
+  const doc = await openPdf(readPdf(file));
+  const page = parseInt(pageArg, 10);
+  if (!allPages && (!Number.isInteger(page) || page < 1 || page > doc.numPages)) {
+    throw new Error(`--page must be 1..${doc.numPages}`);
+  }
+  try {
+    if (!allPages) return { file, ...(await readDocScale(doc, page, { ocr, details })) };
+    const pages = [];
+    for (let p = 1; p <= doc.numPages; p++) pages.push(await readDocScale(doc, p, { ocr, details }));
+    return { file, pageCount: doc.numPages, pages };
+  } finally {
+    if (ocr) await (await import('./ocr-node.ts')).closeOcr();
+  }
 }
 
 async function cmdCompare(fileA: string, fileB: string, png: string | undefined, pngDir: string | undefined, threshold: number): Promise<unknown> {
@@ -344,6 +368,23 @@ export async function run(argv: string[]): Promise<void> {
       });
       if (positionals.length !== 1 || !values.at) throw new Error('usage: pdf2takeoff runs <file.pdf> --page N --at x,y [--scale 1:200] [--gap pt]');
       process.stdout.write(JSON.stringify(await cmdRuns(positionals[0], values.page, values.at, values.scale, values.gap), null, 2) + '\n');
+      return;
+    }
+    if (cmd === 'scale') {
+      const { values, positionals } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: {
+          page: { type: 'string', default: '1' },
+          'all-pages': { type: 'boolean', default: false },
+          ocr: { type: 'boolean', default: false },
+          details: { type: 'boolean', default: false },
+        },
+      });
+      if (positionals.length !== 1) throw new Error('usage: pdf2takeoff scale <file.pdf> [--page N | --all-pages] [--ocr] [--details]');
+      process.stdout.write(
+        JSON.stringify(await cmdScale(positionals[0], values.page, values['all-pages'], values.ocr, values.details), null, 2) + '\n',
+      );
       return;
     }
     if (cmd === 'compare') {

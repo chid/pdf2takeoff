@@ -1,5 +1,5 @@
 {
-  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. \"runs\" = clicking one line, every run in its style must total this many metres at the scale. \"scale\" = the scale the sheet prints, as read by the scale command (stated ratio, its paper, the effective ratio on the sheet; null = no page default), with the dimension cross-check status where given; ocr = the sheet text is outlines and is read by OCR (skipped when the language pack is not cached and cannot be fetched). knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
   "sets": [
     {
       "id": "kingborough-da-2024-64",
@@ -13,7 +13,79 @@
       "drawingPages": "3-8",
       "rotatedPages": "",
       "encrypted": true,
-      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; AES-256 (V5/R6, AESV3 for strings and streams), linearized, objects in encrypted object streams; permissions (P -1052) allow annotating, so markups go in as an incremental update."
+      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; AES-256 (V5/R6, AESV3 for strings and streams), linearized, objects in encrypted object streams; permissions (P -1052) allow annotating, so markups go in as an incremental update.",
+      "expect": [
+        {
+          "kind": "scale",
+          "page": 3,
+          "stated": null,
+          "paper": null,
+          "effectiveRatio": null,
+          "what": "text is outlines: no scale text without OCR",
+          "source": "p3 has no live text"
+        },
+        {
+          "kind": "scale",
+          "page": 3,
+          "stated": "1:2000",
+          "paper": null,
+          "ocr": true,
+          "effectiveRatio": 2000,
+          "what": "Scale: 1 : 2000 (no paper size printed)",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 4,
+          "stated": "1:1000",
+          "paper": null,
+          "ocr": true,
+          "effectiveRatio": 1000,
+          "what": "Scale: 1 : 1000",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 5,
+          "stated": "1:500",
+          "paper": null,
+          "ocr": true,
+          "effectiveRatio": 500,
+          "what": "Scale: 1 : 500",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 6,
+          "stated": "1:100",
+          "paper": null,
+          "ocr": true,
+          "effectiveRatio": 100,
+          "verified": "verified",
+          "what": "Scale: 1 : 100, Ground Floor Plan; OCR dimensions agree",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 7,
+          "stated": "1:100",
+          "paper": null,
+          "ocr": true,
+          "effectiveRatio": 100,
+          "what": "Scale: 1 : 100, elevations",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 8,
+          "stated": "1:200",
+          "paper": null,
+          "ocr": true,
+          "effectiveRatio": 200,
+          "what": "Scale: 1 : 200",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        }
+      ]
     },
     {
       "id": "sorell-5-2025-2",
@@ -82,6 +154,63 @@
           "tolerance": 0.5,
           "what": "stormwater (blue dashed, pre-broken dashes) total run length, key swatch excluded",
           "source": "p6 Site Plan 2026-10-17: runs overlaid on a render and viewed; at 8 px/pt every #0000c6 pixel left of the key lies within 1 pt of a run except the 5 downpipe dots and the IO circle, and 71% of run length lies on ink (dash 6 pt / gap 4 pt); runs stop at pits"
+        },
+        {
+          "kind": "scale",
+          "page": 5,
+          "stated": "1:200",
+          "paper": "A3",
+          "effectiveRatio": 200,
+          "what": "survey sheet: SCALE 1:200 and PAPER (A3) in separate boxes",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 6,
+          "stated": "1:200",
+          "paper": "A3",
+          "effectiveRatio": 200,
+          "verified": "verified",
+          "what": "Site Plan, SCALE 1:200 @ A3",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 7,
+          "stated": "1:100",
+          "paper": "A3",
+          "effectiveRatio": 100,
+          "verified": "verified",
+          "what": "Floor Plan, SCALE 1:100 @ A3",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 8,
+          "stated": "1:100",
+          "paper": "A3",
+          "effectiveRatio": 100,
+          "what": "Roof Plan, SCALE 1:100 @ A3",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 9,
+          "stated": "1:100",
+          "paper": "A3",
+          "effectiveRatio": 100,
+          "verified": "verified",
+          "what": "Elevations: title block and four viewport labels all 1:100",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 10,
+          "stated": null,
+          "paper": null,
+          "effectiveRatio": null,
+          "what": "Shed: the SCALE field is blank (only \"@ A3\")",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
         }
       ]
     },
@@ -272,6 +401,127 @@
           "what": "no drawing-title bubble on hydraulic sheet H07",
           "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
           "knownIssue": "a same-size pipe circle with a leader arrowhead at its centre passes the ink check (own 0.775 vs COVER_OWN 0.75)"
+        },
+        {
+          "kind": "scale",
+          "page": 27,
+          "stated": "1:100",
+          "paper": "A1",
+          "effectiveRatio": 100,
+          "what": "hydraulic sheet, SCALE 1:100 @ A1 on A1 paper",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 30,
+          "stated": "1:1000",
+          "paper": "A1",
+          "effectiveRatio": 1000,
+          "what": "SCALE 1:1000 @ A1",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 31,
+          "stated": null,
+          "paper": null,
+          "effectiveRatio": null,
+          "what": "title block SCALE NTS",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 33,
+          "stated": "1:250",
+          "paper": "A1",
+          "effectiveRatio": 250,
+          "verified": "unverified",
+          "what": "title block says 1:250 @ A1 while the plan label says 1:200 and the scale bar 1:100; the printed 10000 / 32000 dimensions match none of them within 1%",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 36,
+          "stated": null,
+          "paper": null,
+          "effectiveRatio": null,
+          "what": "SCALE AS SHOWN with details at 1:20 and 1:10: no single page scale",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 42,
+          "stated": null,
+          "paper": null,
+          "effectiveRatio": null,
+          "what": "without OCR: only \"As noted on A3 paper size\" is live text",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 38,
+          "stated": "1:3000",
+          "paper": "A3",
+          "ocr": true,
+          "effectiveRatio": 3000,
+          "what": "Site Plan - Overall, scale 1:3000@A3 (outlined text)",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 41,
+          "stated": "1:200",
+          "paper": "A3",
+          "ocr": true,
+          "effectiveRatio": 200,
+          "what": "Site Plan - Drainage Plan, scale 1:200@A3 (outlined text)",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 42,
+          "stated": "1:100",
+          "paper": "A3",
+          "ocr": true,
+          "effectiveRatio": 100,
+          "verified": "verified",
+          "dimensions": [
+            {
+              "text": "16000",
+              "from": [
+                709,
+                858
+              ],
+              "to": [
+                709,
+                404.5
+              ]
+            },
+            {
+              "text": "20000",
+              "from": [
+                219,
+                858
+              ],
+              "to": [
+                219,
+                291
+              ]
+            }
+          ],
+          "what": "Ground Floor Plan, scale: 1:100 @A3 (outlined text); dimension strings agree",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "scale",
+          "page": 43,
+          "stated": "1:100",
+          "paper": "A3",
+          "ocr": true,
+          "effectiveRatio": 100,
+          "verified": "verified",
+          "what": "First Floor Plan, scale: 1:100 @A3 (outlined text); dimension strings agree",
+          "source": "scale field / viewport label read by eye on a render, 2026-10-17"
         }
       ]
     }

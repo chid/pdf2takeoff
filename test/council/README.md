@@ -39,6 +39,12 @@ Plus hand-checked facts under a set's `expect`:
 - `runs`: clicking one line, every run in its style must total this many
   metres at the scale (check it against a render: the runs should cover the
   line's ink and nothing else)
+- `scale`: `pdf2takeoff scale` must read the printed scale (stated ratio,
+  paper, effective ratio; `null` = no page default) and, where given, reach
+  the dimension cross-check status and find hand-checked dimension ends.
+  `ocr` entries read outlined text with tesseract.js; the first run fetches
+  its English pack into `~/.cache/pdf2takeoff`, and they skip when that
+  can't be fetched.
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.

@@ -4,6 +4,7 @@
 
 import type { Pt } from './types.ts';
 import type { Unit } from './units.ts';
+import { findScaleStatements } from './scale.ts';
 
 export interface OcrWord {
   text: string;
@@ -20,37 +21,19 @@ export interface ScaleHit {
   source: string;
 }
 
-const RATIO_WORD_RE = /^1[:\s]?(\d{2,4})$/;
-
 /**
- * Find a drawing ratio (1:N) in the recognized text. Individual words are
- * checked ("1:100"), adjacent triples joined ("1 : 100"), and hits nearest a
- * scale/frequency keyword ("SCALE", "@ A1") win — detail viewports often
- * print secondary ratios that would mislead.
+ * Find a drawing ratio (1:N) in the recognized text — the scale.ts parser
+ * without sheet geometry: hits beside a SCALE label or naming their paper
+ * size ("@ A1") win, since detail viewports often print secondary ratios.
+ * readSheetScale (scale.ts) is the full reader: title block, paper-size
+ * correction and the page default.
  */
 export function findScaleRatio(words: OcrWord[]): ScaleHit | null {
-  const hits: { ratio: number; word: OcrWord }[] = [];
-  const clean = words.map((w) => ({ ...w, text: w.text.trim() })).filter((w) => w.text);
-  for (const w of clean) {
-    const m = w.text.match(RATIO_WORD_RE);
-    if (m) hits.push({ ratio: parseInt(m[1], 10), word: w });
-  }
-  // "1 : 100" split across tokens: join each word with its next two neighbours
-  for (let i = 0; i + 2 < clean.length; i++) {
-    const joined = `${clean[i].text} ${clean[i + 1].text} ${clean[i + 2].text}`.replace(/\s+/g, ' ');
-    const m = joined.match(/^1 ?: ?(\d{2,4})$/);
-    if (m) hits.push({ ratio: parseInt(m[1], 10), word: clean[i + 1] });
-  }
-  const valid = hits.filter((h) => h.ratio >= 10 && h.ratio <= 5000);
-  if (valid.length === 0) return null;
-  const scaleWords = clean.filter((w) => /scale|@/i.test(w.text));
-  const score = (h: { word: OcrWord }) => {
-    if (scaleWords.length === 0) return 1;
-    const nearest = Math.min(...scaleWords.map((s) => Math.hypot(s.xPt - h.word.xPt, s.yPt - h.word.yPt)));
-    return nearest < 150 ? 0 : 1; // near a SCALE label wins
-  };
-  valid.sort((a, b) => score(a) - score(b) || b.word.conf - a.word.conf);
-  return { ratio: valid[0].ratio, source: `OCR 1:${valid[0].ratio}` };
+  const hits = findScaleStatements(words, undefined, { ocr: true }).filter((s) => s.ratio !== null);
+  if (hits.length === 0) return null;
+  const score = (s: (typeof hits)[number]) => (s.labelled ? 2 : 0) + (s.paper ? 1 : 0);
+  hits.sort((a, b) => score(b) - score(a));
+  return { ratio: hits[0].ratio as number, source: `OCR 1:${hits[0].ratio}` };
 }
 
 /** A printed dimension value near a clicked line. */

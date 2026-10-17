@@ -13,6 +13,16 @@ import { lineRuns } from '../engine/runs.ts';
 import { blendOverlay } from '../engine/compare.ts';
 import { diffMask, maskRegions } from '../engine/diff.ts';
 import type { Pt, ScanHit } from '../engine/types.ts';
+import {
+  readSheetScale,
+  checkDimensions,
+  wordsFromTextItems,
+  type DimensionCheck,
+  type DimensionVerdict,
+  type PaperSize,
+  type ScaleStatement,
+  type TextItemLike,
+} from '../engine/scale.ts';
 
 /** Scan at a click point, in PDF points: the vector tier, else tier-1 CV. */
 export async function scanDocAt(doc: PDFDocumentProxy, page: number, at: Pt) {
@@ -253,5 +263,110 @@ export async function scanDocAllPages(doc: PDFDocumentProxy, page: number, at: P
     provider: taught.result.provider,
     pages,
     total: pages.reduce((s, x) => s + x.count, 0),
+  };
+}
+
+// --- auto-scale: the sheet's printed scale, cross-checked by dimensions ---
+
+export interface PageScaleResult {
+  page: number;
+  /** Page default as printed, e.g. "1:100" (null when none could be chosen). */
+  stated: string | null;
+  statedText: string | null;
+  /** Paper the stated ratio refers to, and the sheet's own ISO size. */
+  paper: PaperSize | null;
+  pagePaper: PaperSize | null;
+  /** Ratio that holds on this sheet as issued (stated × paper correction). */
+  effectiveRatio: number | null;
+  metersPerPt: number | null;
+  /** Where the words came from: the PDF's live text or OCR. */
+  source: 'text' | 'ocr' | null;
+  rule: string;
+  verified: { status: DimensionVerdict['status']; checked: number; agreeing: number; suggestedRatio?: number };
+  statements: {
+    kind: ScaleStatement['kind'];
+    text: string;
+    ratio: number | null;
+    paper: PaperSize | null;
+    at: [number, number];
+    titleBlock: boolean;
+  }[];
+  warnings: string[];
+  dimensions?: DimensionCheck[];
+}
+
+/** Live text of a page as positioned words. */
+export async function pageWordsNode(doc: PDFDocumentProxy, page: number) {
+  const tc = await (await doc.getPage(page)).getTextContent();
+  return wordsFromTextItems(tc.items.filter((i) => 'str' in i) as TextItemLike[]);
+}
+
+/**
+ * Read a sheet's scale from its live text — or, with ocr, from OCR when the
+ * live text states none (text converted to outlines) — then cross-check the
+ * effective ratio against the printed dimensions on the vector paths.
+ */
+export async function readDocScale(
+  doc: PDFDocumentProxy,
+  page: number,
+  opts: { ocr?: boolean; details?: boolean } = {},
+): Promise<PageScaleResult> {
+  const pdfPage = await doc.getPage(page);
+  const sheet = { view: pdfPage.view as number[], rotate: pdfPage.rotate };
+  const live = await pageWordsNode(doc, page);
+  let reading = readSheetScale(live, sheet);
+  let source: PageScaleResult['source'] = reading.stated ? 'text' : null;
+  let words = live;
+  if (opts.ocr && !reading.stated) {
+    const { ocrPageNode } = await import('./ocr-node.ts');
+    const ocrWords = await ocrPageNode(doc, page);
+    // live words win where both read the same spot
+    const extra = ocrWords.filter(
+      (o) => !live.some((l) => Math.hypot(l.xPt - o.xPt, l.yPt - o.yPt) < Math.max(l.hPt, o.hPt)),
+    );
+    words = [...live, ...extra];
+    const byOcr = readSheetScale(words, sheet, { ocr: true });
+    if (byOcr.stated || byOcr.statements.length > reading.statements.length) {
+      reading = byOcr;
+      if (byOcr.stated) source = 'ocr';
+    }
+  }
+  const verdict = checkDimensions(words, await vectorPageNode(doc, page), reading.effectiveRatio);
+  const warnings = [...reading.warnings];
+  if (!opts.ocr && !reading.stated && live.length < 20) {
+    warnings.push('little or no live text (drawn as outlines?): rerun with OCR to read it');
+  }
+  if (verdict.status === 'contradicted' && verdict.suggestedRatio) {
+    warnings.push(`printed dimensions disagree with 1:${reading.effectiveRatio}: they measure about 1:${verdict.suggestedRatio}`);
+  } else if (!reading.stated && verdict.suggestedRatio) {
+    warnings.push(`no stated scale; printed dimensions measure about 1:${verdict.suggestedRatio}`);
+  }
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    page,
+    stated: reading.stated ? `1:${reading.stated.ratio}` : null,
+    statedText: reading.stated?.text ?? null,
+    paper: reading.statedPaper,
+    pagePaper: reading.pagePaper,
+    effectiveRatio: reading.effectiveRatio,
+    metersPerPt: reading.metersPerPt === null ? null : Math.round(reading.metersPerPt * 1e10) / 1e10,
+    source,
+    rule: reading.rule,
+    verified: {
+      status: verdict.status,
+      checked: verdict.checked,
+      agreeing: verdict.agreeing,
+      ...(verdict.suggestedRatio !== undefined ? { suggestedRatio: verdict.suggestedRatio } : {}),
+    },
+    statements: reading.statements.map((s) => ({
+      kind: s.kind,
+      text: s.text,
+      ratio: s.ratio,
+      paper: s.paper,
+      at: [r2(s.x), r2(s.y)] as [number, number],
+      titleBlock: s.titleBand && (s.labelled || s.paper !== null),
+    })),
+    warnings,
+    ...(opts.details ? { dimensions: verdict.checks } : {}),
   };
 }
