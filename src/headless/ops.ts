@@ -6,17 +6,19 @@ import { basename, join } from 'node:path';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { createCanvas } from '@napi-rs/canvas';
 import { renderRasterNode, rasterizeToNode } from './raster-node.ts';
-import { openPdf } from './pdfjs-node.ts';
-import { RASTER_SCALE } from '../engine/ports.ts';
-import { cvScan } from '../engine/scan-cv.ts';
+import { openPdf, vectorPageNode } from './pdfjs-node.ts';
+import { scanForSimilar } from '../engine/scan.ts';
 import { blendOverlay } from '../engine/compare.ts';
 import { diffMask, maskRegions } from '../engine/diff.ts';
 import type { Pt } from '../engine/types.ts';
 
-/** Tier-1 CV scan at a click point, in PDF points. */
+/** Scan at a click point, in PDF points: the vector tier, else tier-1 CV. */
 export async function scanDocAt(doc: PDFDocumentProxy, page: number, at: Pt) {
-  const raster = await renderRasterNode(doc, page, RASTER_SCALE);
-  return cvScan(raster, at);
+  return scanForSimilar(page, at, {
+    renderRaster: (p, scale) => renderRasterNode(doc, p, scale),
+    detector: async () => null,
+    vectors: (p) => vectorPageNode(doc, p),
+  });
 }
 
 /** A sheet counts as changed above this fraction of changed pixels. */

@@ -31,7 +31,8 @@ Per set, with no hand labelling needed:
 Plus hand-checked facts under a set's `expect`:
 
 - `length`: two points and a scale must measure a printed dimension
-- `count`: scanning from one instance must find this many
+- `count`: scanning from one instance must find this many (the report also
+  shows what the raster CV tier finds on its own, as a baseline)
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.

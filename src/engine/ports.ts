@@ -4,6 +4,7 @@
 // app today, Node CLI/MCP next) supplies implementations:
 //   RasterPage    — a rendered page as pixels + coordinate transforms
 //   DetectorSession — a loaded ONNX symbol detector
+//   VectorPage    — a page's vector paths and text (from scan-vector.ts)
 //   ScanDeps      — everything the scan dispatcher needs from the host
 //
 // Coordinate conventions (public API, everywhere):
@@ -13,6 +14,7 @@
 //     with page rotation keep exact fidelity by delegating to their renderer.
 
 import type { Pt } from './types.ts';
+import type { VectorPage } from './scan-vector.ts';
 
 /** Raster scale (px per PDF point) both scan tiers render at. */
 export const RASTER_SCALE = 3;
@@ -53,6 +55,9 @@ export interface ScanDeps {
   renderRaster(pageNum: number, scale: number): Promise<RasterPage>;
   /** null when no trained model is available — tier-1 CV runs instead. */
   detector(): Promise<DetectorSession | null>;
+  /** The page's vector paths for the exact tier; omit when the host can't
+   *  supply them (the raster tiers then run alone). */
+  vectors?(pageNum: number): Promise<VectorPage | null>;
   /** Optional sink for recoverable tier-2 failures (host decides logging). */
   warn?(message: string): void;
 }

@@ -20,6 +20,8 @@ import { metersPerPtForRatio } from '../../src/engine/units.ts';
 import { markupLength } from '../../src/engine/geometry.ts';
 import type { Calibration, Markup } from '../../src/engine/types.ts';
 import { openPdf } from '../../src/headless/pdfjs-node.ts';
+import { renderRasterNode } from '../../src/headless/raster-node.ts';
+import { cvScan } from '../../src/engine/scan-cv.ts';
 import { parseScaleSpec } from '../../src/headless/spec.ts';
 import { parsePages } from './pages.ts';
 
@@ -128,6 +130,7 @@ for (const set of manifest.sets) {
         // a connected component of N px spans at most N px, so the clicked
         // symbol's own hit is within templatePx / RASTER_SCALE pt of the click
         assert.ok(p.scan.nearestPt <= p.scan.templatePx / RASTER_SCALE + 2, `${where}: no hit near the click (${p.scan.nearestPt} pt)`);
+        if (p.vector?.hits) assert.equal(p.vector.offPage, 0, `${where}: vector scan hits off the page`);
       }
       t.diagnostic(`${pages.length} sheets rendered; scan exercised on ${scanned}, ${pages.filter((p) => p.scan && p.rotate % 360).length} of them rotated`);
       assert.ok(scanned > 0, 'the scan found no repeated symbol on any sheet — invariants untested');
@@ -173,10 +176,15 @@ for (const set of manifest.sets) {
           assert.ok(Math.abs(m - e.meters) <= e.tolerance, `measured ${m.toFixed(3)} m, printed ${e.meters} m`);
         });
       } else {
-        await t.test(`p${e.page} scan counts ${e.count} × ${e.what}`, { todo }, () => {
+        await t.test(`p${e.page} scan counts ${e.count} × ${e.what}`, { todo }, async (st) => {
           const r = node([join(root, 'bin', 'pdf2takeoff.js'), 'scan', file, '--page', String(e.page), '--at', e.at.join(',')]);
           assert.equal(r.status, 0, r.stderr);
-          assert.equal(JSON.parse(r.stdout).count, e.count);
+          const out = JSON.parse(r.stdout);
+          // the raster tier on its own, for comparison
+          const raster = await renderRasterNode(await openPdf(bytes), e.page, RASTER_SCALE);
+          const cv = cvScan(raster, { x: e.at[0], y: e.at[1] });
+          st.diagnostic(`${out.provider} tier: ${out.count}; raster CV alone: ${'error' in cv ? cv.error : cv.hits.length}`);
+          assert.equal(out.count, e.count);
         });
       }
     }

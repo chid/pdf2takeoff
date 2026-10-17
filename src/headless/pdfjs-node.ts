@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createCanvas, type Canvas, type SKRSContext2D } from '@napi-rs/canvas';
+import { vectorPage, type VectorPage } from '../engine/scan-vector.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -69,4 +70,12 @@ export async function openPdf(data: Uint8Array): Promise<PDFDocumentProxy> {
     standardFontDataUrl: standardFontsUrl(),
     CanvasFactory: NapiCanvasFactory,
   }).promise;
+}
+
+/** A page's vector paths for the vector scan. Annotations are left out, so
+ *  earlier count markups never teach or match the scan. */
+export async function vectorPageNode(doc: PDFDocumentProxy, pageNum: number): Promise<VectorPage> {
+  const page = await doc.getPage(pageNum);
+  const ops = await page.getOperatorList({ annotationMode: pdfjsLib.AnnotationMode.DISABLE });
+  return vectorPage(page.view, ops, pdfjsLib.OPS);
 }

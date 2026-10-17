@@ -1,14 +1,16 @@
 // Child process for the council suite: render each page the way `scan` does
-// and run the CV scan from a few ink points, printing one JSON line per page.
+// and run the CV scan from a few ink points, then the vector scan from the
+// same click, printing one JSON line per page.
 // Isolated in its own process so a native crash surfaces as a signal.
 //
 //   node --experimental-strip-types test/council/probe.ts <file.pdf> <pages>
 
 import { readFileSync } from 'node:fs';
-import { openPdf } from '../../src/headless/pdfjs-node.ts';
+import { openPdf, vectorPageNode } from '../../src/headless/pdfjs-node.ts';
 import { renderRasterNode } from '../../src/headless/raster-node.ts';
 import { RASTER_SCALE } from '../../src/engine/ports.ts';
 import { cvScan } from '../../src/engine/scan-cv.ts';
+import { vectorScan } from '../../src/engine/scan-vector.ts';
 import { parsePages } from './pages.ts';
 
 const [file, pagesArg] = process.argv.slice(2);
@@ -60,6 +62,20 @@ for (const page of parsePages(pagesArg, doc.numPages)) {
     break;
   }
 
+  // the vector tier from the same click, where there was one
+  let vector: Record<string, unknown> | null = null;
+  if (scan) {
+    const v0 = performance.now();
+    const res = vectorScan(await vectorPageNode(doc, page), { x: (scan.at as number[])[0], y: (scan.at as number[])[1] });
+    vector = 'error' in res
+      ? { error: res.error }
+      : {
+          hits: res.hits.length,
+          offPage: res.hits.filter((h) => h.x < vx0 - 1 || h.x > vx1 + 1 || h.y < vy0 - 1 || h.y > vy1 + 1).length,
+          ms: Math.round(performance.now() - v0),
+        };
+  }
+
   console.log(
     JSON.stringify({
       page,
@@ -71,6 +87,7 @@ for (const page of parsePages(pagesArg, doc.numPages)) {
       totalMs: Math.round(performance.now() - t0),
       attempts,
       scan,
+      vector,
     }),
   );
 }

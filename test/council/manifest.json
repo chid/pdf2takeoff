@@ -27,7 +27,31 @@
       "drawingPages": "4-10",
       "rotatedPages": "",
       "encrypted": false,
-      "notes": "ArchiCAD (GSPublisher) A3 set with live text: 1:200 and 1:300 scale labels. pp1-3 are the council notice with 38 form-field annotations that a save must preserve."
+      "notes": "ArchiCAD (GSPublisher) A3 set with live text: 1:200 and 1:300 scale labels. pp1-3 are the council notice with 38 form-field annotations that a save must preserve.",
+      "expect": [
+        {
+          "kind": "count",
+          "page": 6,
+          "at": [
+            115.0,
+            656.9
+          ],
+          "count": 4,
+          "what": "450 stormwater pits on the plan (not the legend's sample)",
+          "source": "p6 Site Plan, counted by eye 2026-10-17"
+        },
+        {
+          "kind": "count",
+          "page": 6,
+          "at": [
+            135.0,
+            566.9
+          ],
+          "count": 2,
+          "what": "15,000 L rainwater tanks (touching each other, a dashed boundary crosses one)",
+          "source": "p6 Site Plan, counted by eye 2026-10-17"
+        }
+      ]
     },
     {
       "id": "sorell-5-2024-189",
@@ -128,8 +152,18 @@
           ],
           "count": 2,
           "what": "22,500 L rainwater tanks",
-          "source": "p42, counted by eye 2026-10-17",
-          "knownIssue": "scan finds 1: each tank's label text touches its outline, so the two circles become differently shaped components"
+          "source": "p42, counted by eye 2026-10-17"
+        },
+        {
+          "kind": "count",
+          "page": 43,
+          "at": [
+            662.0,
+            628.0
+          ],
+          "count": 4,
+          "what": "section markers 1-4 (turned copies, filled halves, different numbers)",
+          "source": "p43 First Floor Plan, counted by eye 2026-10-17"
         }
       ]
     }
