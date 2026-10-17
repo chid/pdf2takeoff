@@ -6,7 +6,9 @@ import { basename, join } from 'node:path';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { createCanvas } from '@napi-rs/canvas';
 import { renderRasterNode, rasterizeToNode } from './raster-node.ts';
-import { openPdf, vectorPageNode } from './pdfjs-node.ts';
+import { openPdf, textItemsNode, vectorPageNode } from './pdfjs-node.ts';
+import { legendSchedule, type LegendDeps } from '../engine/legend.ts';
+import type { VectorPage } from '../engine/scan-vector.ts';
 import { countTemplate, scanForSimilar, teachSymbol } from '../engine/scan.ts';
 import type { ScanDeps } from '../engine/ports.ts';
 import { blendOverlay } from '../engine/compare.ts';
@@ -230,5 +232,67 @@ export async function scanDocAllPages(doc: PDFDocumentProxy, page: number, at: P
     provider: taught.result.provider,
     pages,
     total: pages.reduce((s, x) => s + x.count, 0),
+  };
+}
+
+/** Legend-driven schedule: find the legend blocks on a page (or every
+ *  page), teach the scan from each symbol swatch and count it on the same
+ *  page(s), leaving the legend's own samples out. Line styles are listed;
+ *  rows that can't be counted come back with a reason. */
+export async function legendDoc(doc: PDFDocumentProxy, opts: { page?: number; allPages?: boolean } = {}) {
+  const page = opts.page ?? 1;
+  if (!opts.allPages && (!Number.isInteger(page) || page < 1 || page > doc.numPages)) {
+    throw new Error(`page ${page} is out of range (1-${doc.numPages})`);
+  }
+  const pages = opts.allPages ? Array.from({ length: doc.numPages }, (_, i) => i + 1) : [page];
+  // every symbol row re-reads the sheets: replay each operator list once
+  const vectors = new Map<number, Promise<VectorPage>>();
+  const deps: LegendDeps = {
+    ...scanDeps(doc),
+    vectors: (p) => {
+      if (!vectors.has(p)) vectors.set(p, vectorPageNode(doc, p));
+      return vectors.get(p)!;
+    },
+    text: (p) => textItemsNode(doc, p),
+  };
+  return legendSchedule(pages, deps);
+}
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** legendDoc() as plain JSON with coordinates rounded to 0.01 pt (the CLI
+ *  and MCP output). */
+export async function legendReport(doc: PDFDocumentProxy, opts: { page?: number; allPages?: boolean } = {}) {
+  const result = await legendDoc(doc, opts);
+  return {
+    pages: opts.allPages ? 'all' : result.pages[0],
+    legendsFound: result.legends.length,
+    ...(result.legends.length
+      ? {}
+      : { note: 'no legend found: no KEY / LEGEND / SYMBOLS heading with swatched rows in the sheet text (text converted to outlines cannot be read)' }),
+    schedule: result.schedule.map((s) => ({
+      label: s.label,
+      count: s.count,
+      page: s.page,
+      provider: s.provider,
+      ...(s.note ? { note: s.note } : {}),
+      ...(s.pages ? { pages: s.pages.filter((p) => p.count > 0) } : {}),
+      hits: s.hits.map((h) => ({ page: h.page, x: r2(h.x), y: r2(h.y) })),
+    })),
+    lines: result.lines.map((l) => ({ label: l.label, page: l.page })),
+    unmatched: result.unmatched,
+    legends: result.legends.map((l) => ({
+      page: l.page,
+      heading: l.heading,
+      box: l.box.map(r2),
+      rows: l.rows.map((row) => ({
+        label: row.label,
+        kind: row.kind,
+        ...(row.code ? { code: row.code } : {}),
+        ...(row.swatch ? { swatch: row.swatch.map(r2) } : {}),
+        ...(row.at ? { at: [r2(row.at.x), r2(row.at.y)] } : {}),
+        ...(row.text ? { text: row.text } : {}),
+      })),
+    })),
   };
 }

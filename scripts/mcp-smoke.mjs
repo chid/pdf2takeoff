@@ -73,8 +73,8 @@ console.log('ok: initialize');
 
 const tools = await request('tools/list', {});
 const names = tools.tools.map((t) => t.name);
-check('tools/list has all 11 tools', [
-  'open_document', 'render_page', 'set_scale', 'measure', 'scan_symbol',
+check('tools/list has all 12 tools', [
+  'open_document', 'render_page', 'set_scale', 'measure', 'scan_symbol', 'legend_schedule',
   'compare_revisions', 'list_markups', 'set_status', 'delete_markup', 'export', 'save_annotated',
 ].every((n) => names.includes(n)), `got: ${names.join(', ')}`);
 
@@ -95,6 +95,10 @@ check('set_scale: applied to all pages', scale.set.length === 2);
 
 const scanned = textOf(await call('scan_symbol', { id: docId, page: 1, at: [88.35, 271.42] }));
 check('scan_symbol: 8 downlights (matches browser)', scanned.count === 8, `got ${scanned.count}`);
+
+// the sample has no legend block: the tool reports that and adds nothing
+const legend = textOf(await call('legend_schedule', { id: docId, all_pages: true }));
+check('legend_schedule: no legend on the sample', legend.legendsFound === 0 && legend.markupsAdded === 0, JSON.stringify(legend));
 
 const measured = textOf(
   await call('measure', { id: docId, page: 1, type: 'length', points: [[60, 90], [400.02, 90]], label: 'External wall' }),

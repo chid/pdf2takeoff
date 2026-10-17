@@ -36,6 +36,9 @@ Plus hand-checked facts under a set's `expect`:
 - `schedule`: teaching the symbol on `page` and counting it across the set
   (`scan --all-pages`) must find `counts[page]` on each listed page; list
   only pages you have looked at
+- `legend`: `pdf2takeoff legend --page N` must schedule `counts` per legend
+  row label (legend sample excluded) and, if `lines` is given, list exactly
+  those line styles; check the plan by eye, not just the legend
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.

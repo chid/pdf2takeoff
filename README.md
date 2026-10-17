@@ -63,6 +63,7 @@ npm run cli -- compare r2.pdf r3.pdf --png diff.png  # per-sheet change fraction
 npm run cli -- compare r2/ r3/ --png-dir ov/         # folders: batch the whole set, pair by filename
 npm run cli -- scan drawing.pdf --page 1 --at 88,271 # click-point auto-count, JSON hits
 npm run cli -- scan set.pdf --page 3 --at 88,271 --all-pages # teach on p3, count on every sheet
+npm run cli -- legend set.pdf --page 6                # schedule every symbol in the sheet's KEY / LEGEND
 npm run cli -- export drawing.pdf --scale 1:100      # annotations → quantities CSV
 npm run cli -- annotate drawing.pdf --spec takeoff.yaml -o marked.pdf
 npm run cli -- run takeoff.yaml --prev run-a.json   # regenerate + diff quantities
@@ -80,9 +81,9 @@ agent API (MCP) — see [specs/headless-engine.md](specs/headless-engine.md).
 
 ## Agent API (MCP)
 
-`pdf2takeoff mcp` starts a local MCP server on stdio with ten tools —
+`pdf2takeoff mcp` starts a local MCP server on stdio with these tools —
 `open_document`, `render_page` (the agent's eyes: a PNG of any sheet),
-`set_scale`, `measure`, `scan_symbol`, `compare_revisions`, `list_markups`,
+`set_scale`, `measure`, `scan_symbol`, `legend_schedule`, `compare_revisions`, `list_markups`,
 `delete_markup`, `export`, `save_annotated` — so an AI agent can run a whole
 takeoff and hand the marked-up PDF to a human for review. Local process,
 local files, nothing uploaded.

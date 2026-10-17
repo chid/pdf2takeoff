@@ -213,6 +213,7 @@ any MCP client). Package: `@modelcontextprotocol/sdk` (MIT).
 | `set_scale` | `doc, page, {ratio \| from_points + real_length}` | confirmation + effective metres/point |
 | `measure` | `doc, page, type: length\|area\|count, points[], label?` | value (formatted + raw), markup id |
 | `scan_symbol` | `doc, page, at: [x,y], label?` or `{class}` (ONNX) | hits with coordinates, count |
+| `legend_schedule` | `doc, page, all_pages?, add_markups?` | legend blocks found, per-symbol counts (legend sample excluded), line styles, unmatched rows with reasons |
 | `compare_revisions` | `path_a, path_b` | changed sheets, changed regions, summary |
 | `list_markups` / `delete_markup` | `doc` / `doc, id` | markups table / confirmation |
 | `export` | `doc, format: csv\|xlsx, out_path` | written file path |

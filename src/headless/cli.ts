@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync, statSync, mkdirSync, readdirSync } from 'node:fs';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, legendReport } from './ops.ts';
 import { basename, join } from 'node:path';
 import { readPdfMarkups } from '../engine/read.ts';
 import { buildAnnotatedPdf } from '../engine/annotate.ts';
@@ -37,6 +37,12 @@ Usage:
       --all-pages teaches the symbol at --at on --page, then counts that
       symbol on every sheet (wherever it sits) and returns a per-page
       schedule with hits and a total.
+  pdf2takeoff legend <file.pdf> [--page N | --all-pages]
+      Legend-driven schedule: find the sheet's legend / key (live text),
+      teach the scan from each symbol drawn in it and count that symbol on
+      the sheet (or every sheet), leaving the legend's own sample out.
+      Line styles are listed; rows that can't be counted (text codes,
+      hatches, unreadable swatches, no copies) come back with a reason.
   pdf2takeoff export <file.pdf> [--scale 1:100] [--unit m] [--format csv|tsv|xlsx] [-o out]
       Read pdf2takeoff annotations back out as a quantities table.
       csv/tsv print to stdout without -o; xlsx requires -o.
@@ -313,6 +319,20 @@ export async function run(argv: string[]): Promise<void> {
       });
       if (positionals.length !== 1 || !values.at) throw new Error('usage: pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages]');
       process.stdout.write(JSON.stringify(await cmdScan(positionals[0], values.page, values.at, values['all-pages']), null, 2) + '\n');
+      return;
+    }
+    if (cmd === 'legend') {
+      const { values, positionals } = parseArgs({
+        args: rest,
+        allowPositionals: true,
+        options: { page: { type: 'string', default: '1' }, 'all-pages': { type: 'boolean', default: false } },
+      });
+      if (positionals.length !== 1) throw new Error('usage: pdf2takeoff legend <file.pdf> [--page N | --all-pages]');
+      const page = parseInt(values.page, 10);
+      if (!Number.isInteger(page) || page < 1) throw new Error('--page must be a positive integer');
+      const doc = await openPdf(readPdf(positionals[0]));
+      const report = await legendReport(doc, { page, allPages: values['all-pages'] });
+      process.stdout.write(JSON.stringify({ file: positionals[0], ...report }, null, 2) + '\n');
       return;
     }
     if (cmd === 'compare') {
