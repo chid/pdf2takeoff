@@ -13,8 +13,9 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PDFDict, PDFDocument, PDFName } from 'pdf-lib';
-import { ANNOTATION_AUTHOR, ENCRYPTED_PDF_MESSAGE, buildAnnotatedPdf, pdfText } from '../../src/engine/annotate.ts';
+import { ANNOTATION_AUTHOR, buildAnnotatedPdf, pdfText } from '../../src/engine/annotate.ts';
 import { readPdfMarkups } from '../../src/engine/read.ts';
+import { loadEncryptedPdf } from '../../src/engine/incremental.ts';
 import { RASTER_SCALE } from '../../src/engine/ports.ts';
 import { metersPerPtForRatio } from '../../src/engine/units.ts';
 import { markupLength } from '../../src/engine/geometry.ts';
@@ -52,7 +53,8 @@ function node(args: string[]) {
 
 /** Our annotations vs everyone else's, read from the raw dictionaries. */
 async function annotationCounts(bytes: Uint8Array): Promise<{ ours: number; foreign: number }> {
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  let doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  if (doc.isEncrypted) doc = (await loadEncryptedPdf(bytes, doc.context)).doc;
   let ours = 0;
   let foreign = 0;
   for (const page of doc.getPages()) {
@@ -143,16 +145,11 @@ for (const set of manifest.sets) {
       const markups = pages.flatMap((p, i) => markupsFor(p, views[i]));
       const calibrations = new Map<number, Calibration>(pages.map((p) => [p, { metersPerPt: metersPerPtForRatio(100), source: '1:100' }]));
 
-      if (set.encrypted) {
-        // not supported yet: it must fail with a clear message, and reading
-        // must come back empty rather than throw
-        await assert.rejects(buildAnnotatedPdf({ bytes, markups, calibrations, displayUnit: 'mm' }), { message: ENCRYPTED_PDF_MESSAGE });
-        assert.deepEqual(await readPdfMarkups(bytes), []);
-        return;
-      }
       const before = await annotationCounts(bytes);
 
       const saved = await buildAnnotatedPdf({ bytes, markups, calibrations, displayUnit: 'mm' });
+      // encrypted sets get an incremental update: the original bytes stay put
+      if (set.encrypted) assert.deepEqual(saved.subarray(0, bytes.length), bytes);
       assert.deepEqual(essentials(await readPdfMarkups(saved)), essentials(markups));
       assert.deepEqual(await annotationCounts(saved), { ours: markups.length, foreign: before.foreign });
 
@@ -161,6 +158,7 @@ for (const set of manifest.sets) {
       assert.equal(reopened.numPages, set.pages);
       const seen = (await (await reopened.getPage(pages[0])).getAnnotations()).filter((a: { titleObj?: { str?: string } }) => a.titleObj?.str === ANNOTATION_AUTHOR);
       assert.equal(seen.length, markupsFor(pages[0], views[0]).length);
+      assert.ok(seen.some((a: { contentsObj?: { str?: string } }) => a.contentsObj?.str === 'Check: RL to survey'), 'pdf.js reads the comment text');
 
       // saving the reopened file again replaces rather than stacks
       const again = await buildAnnotatedPdf({ bytes: saved, markups: await readPdfMarkups(saved), calibrations, displayUnit: 'mm' });
