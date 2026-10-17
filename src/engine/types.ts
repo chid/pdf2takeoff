@@ -30,6 +30,11 @@ export interface ScanHit {
   y: number;
   label?: string; // class name when the provider knows it
   score?: number; // match/confidence 0..1
+  /** Vector tier: 'exact' traces the taught path; 'near' matched its
+   *  outline and ink only (re-tessellated or scaled), worth a check. */
+  match?: 'exact' | 'near';
+  /** Vector tier, near hits: size relative to the taught symbol. */
+  scale?: number;
 }
 
 export type ScanResult =

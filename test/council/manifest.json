@@ -1,5 +1,5 @@
 {
-  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. \"runs\" = clicking one line, every run in its style must total this many metres at the scale. \"scale\" = the scale the sheet prints, as read by the scale command (stated ratio, its paper, the effective ratio on the sheet; null = no page default), with the dimension cross-check status where given; ocr = the sheet text is outlines and is read by OCR (skipped when the language pack is not cached and cannot be fetched). \"legend\" = the legend command must schedule these counts per legend row (legend sample excluded) and, if given, list exactly these line styles. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. Counts include the vector tier's near hits (outline and ink match, no exact path; flagged status 'check'): \"checks\" says how many of them must be near hits (default none), \"flags\" adds scan options. \"runs\" = clicking one line, every run in its style must total this many metres at the scale. \"scale\" = the scale the sheet prints, as read by the scale command (stated ratio, its paper, the effective ratio on the sheet; null = no page default), with the dimension cross-check status where given; ocr = the sheet text is outlines and is read by OCR (skipped when the language pack is not cached and cannot be fetched). \"legend\" = the legend command must schedule these counts per legend row (legend sample excluded) and, if given, list exactly these line styles. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
   "sets": [
     {
       "id": "kingborough-da-2024-64",
@@ -84,6 +84,21 @@
           "effectiveRatio": 200,
           "what": "Scale: 1 : 200",
           "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "count",
+          "page": 4,
+          "at": [
+            938.4,
+            523.8
+          ],
+          "flags": [
+            "--scale-tolerant"
+          ],
+          "count": 11,
+          "checks": 10,
+          "what": "trees (one block scaled to each canopy, 0.67x-1.1x of the clicked one, every circle a ring of loose segments); the 12th, at 781,597, is 2.2x and outside the --scale-tolerant band, where the north point (128,123) would match too",
+          "source": "p4 Overall Site Plan rendered with the hits ringed and checked by eye (12 trees on the sheet), 2026-10-17"
         }
       ]
     },
@@ -101,17 +116,6 @@
       "encrypted": false,
       "notes": "ArchiCAD (GSPublisher) A3 set with live text: 1:200 and 1:300 scale labels. pp1-3 are the council notice with 38 form-field annotations that a save must preserve.",
       "expect": [
-        {
-          "kind": "count",
-          "page": 6,
-          "at": [
-            115.0,
-            656.9
-          ],
-          "count": 4,
-          "what": "450 stormwater pits on the plan (not the legend's sample)",
-          "source": "p6 Site Plan, counted by eye 2026-10-17"
-        },
         {
           "kind": "count",
           "page": 6,
@@ -235,6 +239,18 @@
           },
           "what": "survey LEGEND top left (white background behind it): the one corner mark, at the fence post bottom left",
           "source": "p5 Detail and Contour Survey, checked by eye on rendered sheet and crop 2026-10-17"
+        },
+        {
+          "kind": "count",
+          "page": 6,
+          "at": [
+            115.0,
+            656.9
+          ],
+          "count": 5,
+          "what": "450 stormwater pits: 4 on the plan exact, plus the legend's sample as a near hit to check (same square-and-cross, its vertices drawn in another order)",
+          "source": "p6 Site Plan, counted by eye 2026-10-17; legend sample at 996,284 checked at 6x, 2026-10-17",
+          "checks": 1
         }
       ]
     },
@@ -374,59 +390,6 @@
           "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
         },
         {
-          "kind": "schedule",
-          "page": 43,
-          "at": [
-            767.0,
-            82.7
-          ],
-          "counts": {
-            "37": 0,
-            "39": 0,
-            "40": 1,
-            "41": 1,
-            "42": 1,
-            "43": 1,
-            "44": 1,
-            "45": 1,
-            "46": 1,
-            "47": 0,
-            "48": 0,
-            "49": 0
-          },
-          "what": "north points (upright on pp40-41, turned on pp42-46; none on the title page, layout or elevations)",
-          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
-        },
-        {
-          "kind": "schedule",
-          "page": 43,
-          "at": [
-            118.0,
-            1119.0
-          ],
-          "counts": {
-            "38": 1,
-            "39": 1
-          },
-          "what": "drawing-title bubbles on the 1:3000 site sheets",
-          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
-          "knownIssue": "drawn 31.3 pt across there vs 29.3 pt on the 1:100 sheets; the vector tier matches a block at its taught size only"
-        },
-        {
-          "kind": "schedule",
-          "page": 43,
-          "at": [
-            118.0,
-            1119.0
-          ],
-          "counts": {
-            "36": 0
-          },
-          "what": "no drawing-title bubble on hydraulic sheet H07",
-          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
-          "knownIssue": "a same-size pipe circle with a leader arrowhead at its centre passes the ink check (own 0.775 vs COVER_OWN 0.75)"
-        },
-        {
           "kind": "scale",
           "page": 27,
           "stated": "1:100",
@@ -546,6 +509,65 @@
           "verified": "verified",
           "what": "First Floor Plan, scale: 1:100 @A3 (outlined text); dimension strings agree",
           "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            767.0,
+            82.7
+          ],
+          "counts": {
+            "37": 0,
+            "38": 1,
+            "39": 0,
+            "40": 1,
+            "41": 1,
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 1,
+            "46": 1,
+            "47": 0,
+            "48": 0,
+            "49": 0
+          },
+          "what": "north points (upright on pp40-41, turned on pp42-46, drawn 6.6% larger on 1:3000 sheet p38 (a near hit); none on the title page, layout or elevations)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17; p38 checked at 4x, 2026-10-17",
+          "checks": {
+            "38": 1
+          }
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            118.0,
+            1119.0
+          ],
+          "counts": {
+            "38": 1,
+            "39": 1
+          },
+          "what": "drawing-title bubbles on the 1:3000 site sheets (drawn 31.3 pt across vs 29.3 pt: near hits at scale 1.065)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
+          "checks": {
+            "38": 1,
+            "39": 1
+          }
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            118.0,
+            1119.0
+          ],
+          "counts": {
+            "36": 0
+          },
+          "what": "no drawing-title bubble on hydraulic sheet H07 (a same-size pipe circle with a leader arrowhead at its centre passes the coarse ink check, not the fine one)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
         }
       ]
     }

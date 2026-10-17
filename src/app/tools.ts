@@ -352,6 +352,9 @@ async function runScan(p: Pt): Promise<void> {
       layer: getActiveLayer() !== DEFAULT_LAYER ? getActiveLayer() : undefined,
       label: hit.label ?? fallbackLabel,
       points: [{ x: hit.x, y: hit.y }],
+      // a near match (outline and ink, not the exact path) is for the
+      // estimator to confirm, not to count blind
+      ...(hit.match === 'near' ? { status: 'check' as const } : {}),
       createdAt: Date.now(),
     };
     state.markups.push(scanned);
@@ -362,10 +365,12 @@ async function runScan(p: Pt): Promise<void> {
   renderMarkups();
   emit();
   const label = hits[0].label ?? fallbackLabel;
+  const near = hits.filter((h) => h.match === 'near').length;
+  const check = near ? ` · ${near} near match${near === 1 ? '' : 'es'} flagged ⚑ to check` : '';
   hint(
     label !== 'Scanned symbol'
-      ? `Scan counted ${hits.length} × ${label} in ${ms} ms`
-      : `Scan found ${hits.length} symbols in ${ms} ms; rename "Scanned symbol" in the list to group them`,
+      ? `Scan counted ${hits.length} × ${label} in ${ms} ms${check}`
+      : `Scan found ${hits.length} symbols in ${ms} ms${check}; rename "Scanned symbol" in the list to group them`,
   );
 }
 

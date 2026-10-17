@@ -9,7 +9,7 @@ import { renderRasterNode, rasterizeToNode } from './raster-node.ts';
 import { openPdf, textItemsNode, vectorPageNode } from './pdfjs-node.ts';
 import { legendSchedule, type LegendDeps } from '../engine/legend.ts';
 import type { VectorPage } from '../engine/scan-vector.ts';
-import { countTemplate, scanForSimilar, teachSymbol } from '../engine/scan.ts';
+import { countTemplate, scanForSimilar, teachSymbol, type ScanOptions } from '../engine/scan.ts';
 import type { ScanDeps } from '../engine/ports.ts';
 import { lineRuns } from '../engine/runs.ts';
 import { blendOverlay } from '../engine/compare.ts';
@@ -27,8 +27,8 @@ import {
 } from '../engine/scale.ts';
 
 /** Scan at a click point, in PDF points: the vector tier, else tier-1 CV. */
-export async function scanDocAt(doc: PDFDocumentProxy, page: number, at: Pt) {
-  return scanForSimilar(page, at, scanDeps(doc));
+export async function scanDocAt(doc: PDFDocumentProxy, page: number, at: Pt, opts: ScanOptions = {}) {
+  return scanForSimilar(page, at, scanDeps(doc), opts);
 }
 
 function scanDeps(doc: PDFDocumentProxy): ScanDeps {
@@ -240,24 +240,27 @@ export async function compareFolders(
   };
 }
 
+/** Hits to check by eye: the vector tier's near copies. */
+export const nearHits = (hits: ScanHit[]) => hits.filter((h) => h.match === 'near').length;
+
 /** Teach a symbol from a click on one page, then count it on every page
  *  (pages without it count 0). The taught template travels between pages,
  *  not the click point, so each sheet is searched for that symbol wherever
  *  it sits. */
-export async function scanDocAllPages(doc: PDFDocumentProxy, page: number, at: Pt) {
+export async function scanDocAllPages(doc: PDFDocumentProxy, page: number, at: Pt, opts: ScanOptions = {}) {
   if (page > doc.numPages) throw new Error(`page ${page} is past the last page (${doc.numPages})`);
   const deps = scanDeps(doc);
   // a symbol drawn once per sheet is still worth counting across the set
-  const taught = await teachSymbol(page, at, deps, 1);
+  const taught = await teachSymbol(page, at, deps, 1, opts);
   if ('error' in taught) throw new Error(`page ${page}: ${taught.error}`);
-  const pages: { page: number; count: number; hits: ScanHit[]; error?: string }[] = [];
+  const pages: { page: number; count: number; checks: number; hits: ScanHit[]; error?: string }[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     try {
-      const result = p === page ? taught.result : await countTemplate(p, taught.template, deps);
-      if ('error' in result) pages.push({ page: p, count: 0, hits: [], error: result.error });
-      else pages.push({ page: p, count: result.hits.length, hits: result.hits });
+      const result = p === page ? taught.result : await countTemplate(p, taught.template, deps, opts);
+      if ('error' in result) pages.push({ page: p, count: 0, checks: 0, hits: [], error: result.error });
+      else pages.push({ page: p, count: result.hits.length, checks: nearHits(result.hits), hits: result.hits });
     } catch (err) {
-      pages.push({ page: p, count: 0, hits: [], error: err instanceof Error ? err.message : String(err) });
+      pages.push({ page: p, count: 0, checks: 0, hits: [], error: err instanceof Error ? err.message : String(err) });
     }
   }
   return {
@@ -265,6 +268,7 @@ export async function scanDocAllPages(doc: PDFDocumentProxy, page: number, at: P
     provider: taught.result.provider,
     pages,
     total: pages.reduce((s, x) => s + x.count, 0),
+    checks: pages.reduce((s, x) => s + x.checks, 0),
   };
 }
 

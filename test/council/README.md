@@ -49,6 +49,13 @@ Plus hand-checked facts under a set's `expect`:
   row label (legend sample excluded) and, if `lines` is given, list exactly
   those line styles; check the plan by eye, not just the legend
 
+Counts include the vector tier's near hits (no exact path trace, but the
+outline and ink match: re-tessellated, or on a sheet drawn at another
+scale), which the app marks for checking. `checks` says how many of a
+count are near hits (a number for `count`, per page for `schedule`;
+default none), so a near hit appearing or vanishing fails the suite.
+`flags` adds scan options to a `count` (e.g. `--scale-tolerant`).
+
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.
 
