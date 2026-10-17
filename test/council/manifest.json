@@ -1,5 +1,5 @@
 {
-  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. \"runs\" = clicking one line, every run in its style must total this many metres at the scale. \"scale\" = the scale the sheet prints, as read by the scale command (stated ratio, its paper, the effective ratio on the sheet; null = no page default), with the dimension cross-check status where given; ocr = the sheet text is outlines and is read by OCR (skipped when the language pack is not cached and cannot be fetched). knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. \"runs\" = clicking one line, every run in its style must total this many metres at the scale. \"scale\" = the scale the sheet prints, as read by the scale command (stated ratio, its paper, the effective ratio on the sheet; null = no page default), with the dimension cross-check status where given; ocr = the sheet text is outlines and is read by OCR (skipped when the language pack is not cached and cannot be fetched). \"legend\" = the legend command must schedule these counts per legend row (legend sample excluded) and, if given, list exactly these line styles. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
   "sets": [
     {
       "id": "kingborough-da-2024-64",
@@ -211,6 +211,30 @@
           "effectiveRatio": null,
           "what": "Shed: the SCALE field is blank (only \"@ A3\")",
           "source": "scale field / viewport label read by eye on a render, 2026-10-17"
+        },
+        {
+          "kind": "legend",
+          "page": 6,
+          "counts": {
+            "450m² STORMWATER PIT": 4
+          },
+          "lines": [
+            "STORMWATER",
+            "SEWER MAIN",
+            "WATER MAIN",
+            "POWERLINE"
+          ],
+          "what": "KEY block bottom right: 4 line styles and the pit swatch, the pit counted on the plan without the legend's sample",
+          "source": "p6 Site Plan, KEY and the 4 pits checked by eye on rendered crops 2026-10-17"
+        },
+        {
+          "kind": "legend",
+          "page": 5,
+          "counts": {
+            "Corner Mark (not verified)": 1
+          },
+          "what": "survey LEGEND top left (white background behind it): the one corner mark, at the fence post bottom left",
+          "source": "p5 Detail and Contour Survey, checked by eye on rendered sheet and crop 2026-10-17"
         }
       ]
     },

@@ -18,7 +18,7 @@ import { basename } from 'node:path';
 import { createCanvas } from '@napi-rs/canvas';
 import { openPdf } from './pdfjs-node.ts';
 import { renderRasterNode } from './raster-node.ts';
-import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, runsDocAt, readDocScale } from './ops.ts';
+import { scanDocAt, scanDocAllPages, compareDocs, compareFolders, runsDocAt, readDocScale, legendReport } from './ops.ts';
 import { statSync } from 'node:fs';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle, defaultLabel, nextId, distPt } from '../engine/geometry.ts';
 import { buildMatrix, toDelimited, xlsxBytes } from '../engine/export.ts';
@@ -390,6 +390,41 @@ export async function runMcpServer(): Promise<void> {
         });
       }
       return text({ label: name, calibrated: !!cal, ...result });
+    },
+  );
+
+  server.registerTool(
+    'legend_schedule',
+    {
+      description:
+        "Legend-driven schedule: find the sheet's legend / key block (a KEY, LEGEND or SYMBOLS heading over rows of swatch + label, read from live text), teach the scan from each symbol swatch and count that symbol on the sheet (or every sheet with all_pages), leaving the legend's own sample out. Each counted hit is added as a count markup labelled with the legend row. Line styles are listed (no lengths); rows that cannot be counted (text codes, hatches, unreadable swatches, no copies found) come back under unmatched with a reason. Sheets whose text is converted to outlines report no legend. Coordinates are PDF points.",
+      inputSchema: {
+        id: z.string(),
+        page: z.number().int().min(1).default(1),
+        all_pages: z.boolean().default(false).describe('find legends on every sheet and count each symbol across every sheet'),
+        add_markups: z.boolean().default(true).describe('add each counted hit as a count markup'),
+      },
+    },
+    async ({ id, page, all_pages, add_markups }) => {
+      const d = getDoc(id);
+      const report = await legendReport(d.doc, { page, allPages: all_pages });
+      if (add_markups) {
+        for (const row of report.schedule) {
+          for (const hit of row.hits) {
+            d.markups.push({
+              id: nextId('mcp'),
+              page: hit.page,
+              type: 'count',
+              label: row.label,
+              points: [{ x: hit.x, y: hit.y }],
+              createdAt: Date.now(),
+            });
+          }
+        }
+      }
+      // the hits are markups now (list_markups); keep the schedule compact
+      const schedule = add_markups ? report.schedule.map(({ hits: _, ...row }) => row) : report.schedule;
+      return text({ ...report, schedule, markupsAdded: add_markups ? report.schedule.reduce((s, r) => s + r.count, 0) : 0 });
     },
   );
 

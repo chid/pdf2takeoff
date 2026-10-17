@@ -42,6 +42,7 @@ type Expectation = { page: number; what: string; knownIssue?: string } & (
       /** hand-checked ends of printed dimensions the cross-check must find */
       dimensions?: { text: string; from: [number, number]; to: [number, number] }[];
     }
+  | { kind: 'legend'; counts: Record<string, number>; lines?: string[] }
 );
 
 interface CouncilSet {
@@ -196,6 +197,20 @@ for (const set of manifest.sets) {
           const got = Object.fromEntries(Object.keys(e.counts).map((p) => [p, out.pages[Number(p) - 1].count]));
           st.diagnostic(`${out.provider} tier, ${out.total} across the set`);
           assert.deepEqual(got, e.counts);
+        });
+        continue;
+      }
+      if (e.kind === 'legend') {
+        await t.test(`p${e.page} legend schedules ${JSON.stringify(e.counts)}: ${e.what}`, { todo }, (st) => {
+          const r = node([join(root, 'bin', 'pdf2takeoff.js'), 'legend', file, '--page', String(e.page)]);
+          assert.equal(r.status, 0, r.stderr);
+          const out = JSON.parse(r.stdout);
+          const got = Object.fromEntries(
+            (out.schedule as { label: string; count: number }[]).filter((s) => s.label in e.counts).map((s) => [s.label, s.count]),
+          );
+          st.diagnostic(`${out.legendsFound} legend(s); lines: ${out.lines.map((l: { label: string }) => l.label).join(', ')}`);
+          assert.deepEqual(got, e.counts);
+          if (e.lines) assert.deepEqual(out.lines.map((l: { label: string }) => l.label), e.lines);
         });
         continue;
       }

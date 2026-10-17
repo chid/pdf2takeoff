@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createCanvas, type Canvas, type SKRSContext2D } from '@napi-rs/canvas';
 import { vectorPage, type VectorPage } from '../engine/scan-vector.ts';
+import type { TextItemLike } from '../engine/legend.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -78,4 +79,14 @@ export async function vectorPageNode(doc: PDFDocumentProxy, pageNum: number): Pr
   const page = await doc.getPage(pageNum);
   const ops = await page.getOperatorList({ annotationMode: pdfjsLib.AnnotationMode.DISABLE });
   return vectorPage(page.view, ops, pdfjsLib.OPS);
+}
+
+/** A page's text items (strings with their PDF-space transforms), for
+ *  legend detection. */
+export async function textItemsNode(doc: PDFDocumentProxy, pageNum: number): Promise<TextItemLike[]> {
+  const page = await doc.getPage(pageNum);
+  const content = await page.getTextContent();
+  return (content.items as { str?: string; transform?: number[]; width?: number }[])
+    .filter((it) => typeof it.str === 'string' && Array.isArray(it.transform))
+    .map((it) => ({ str: it.str!, transform: it.transform!, width: it.width ?? 0 }));
 }

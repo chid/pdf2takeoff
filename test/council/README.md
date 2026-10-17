@@ -45,6 +45,9 @@ Plus hand-checked facts under a set's `expect`:
   `ocr` entries read outlined text with tesseract.js; the first run fetches
   its English pack into `~/.cache/pdf2takeoff`, and they skip when that
   can't be fetched.
+- `legend`: `pdf2takeoff legend --page N` must schedule `counts` per legend
+  row label (legend sample excluded) and, if `lines` is given, list exactly
+  those line styles; check the plan by eye, not just the legend
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.
