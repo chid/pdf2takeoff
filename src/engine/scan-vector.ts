@@ -7,7 +7,9 @@
 //
 // The host hands over the page's pdf.js operator list as plain data;
 // vectorPage() replays the transforms into PDF user space and vectorScan()
-// matches the clicked symbol, allowing quarter turns and mirrors.
+// matches the clicked symbol, allowing quarter turns and mirrors. The same
+// match runs from a VectorTemplate (vectorTemplate() teaches one from a
+// click), so a symbol taught on one sheet can be counted on every other.
 
 import type { Pt, ScanHit, ScanResult } from './types.ts';
 
@@ -322,7 +324,34 @@ function within(a: Uint8Array, b: Uint8Array): number {
   return inked ? met / inked : 1;
 }
 
-export function vectorScan(page: VectorPage, clicked: Pt): ScanResult {
+/** A symbol taught on one sheet, ready to match on any sheet: the seed
+ *  path's exact shape and the ink around it, in PDF points. A CAD block is
+ *  drawn the same size on every sheet of a set, so no rescaling is tried. */
+export interface VectorTemplate {
+  /** The seed path's segment string (see VectorPath.cmds). */
+  cmds: string;
+  /** Seed points relative to its box's lower-left corner, x,y interleaved. */
+  shape: Float64Array;
+  /** Seed box size. */
+  w: number;
+  h: number;
+  /** Ink sampled inside the symbol's box (the seed's box plus margin),
+   *  relative to the seed's corner, x,y interleaved. */
+  ink: number[];
+  /** Point tolerance for tracing the seed. */
+  tol: number;
+  /** Box margin around the seed the ink check looks at. */
+  margin: number;
+  /** Ink sampling step along outlines. */
+  step: number;
+  /** Largest path counted as part of a symbol on the teaching sheet; the
+   *  same cut applies on every sheet so the ink compares like with like. */
+  maxSize: number;
+}
+
+/** Teach the scan from a click: the template of the clicked symbol, and
+ *  its copies on this sheet in reading order. */
+export function vectorTemplate(page: VectorPage, clicked: Pt): { template: VectorTemplate; hits: ScanHit[] } | { error: string } {
   const [vx0, vy0, vx1, vy1] = page.view;
   const maxSize = MAX_SYMBOL * Math.min(vx1 - vx0, vy1 - vy0);
   const small = page.paths.filter((p) => size(p) <= maxSize && size(p) > 0);
@@ -341,36 +370,61 @@ export function vectorScan(page: VectorPage, clicked: Pt): ScanResult {
   if (!candidates.length) return { error: 'click directly on a symbol to teach the scan' };
 
   const near = index(page.paths, maxSize);
-  let hits: ScanHit[] = [];
+  let best: { template: VectorTemplate; hits: ScanHit[] } | null = null;
   // a click may sit in several boxes (a wall segment beside the symbol):
   // take the biggest one that repeats
   for (const seed of candidates.slice(0, 8)) {
-    const found = matchSymbol(page, seed, near);
-    if (found.length > hits.length) hits = found;
-    if (hits.length >= 2) break;
+    const template = teach(seed, near, maxSize);
+    const hits = matchSymbol(page, template, near);
+    if (!best || hits.length > best.hits.length) best = { template, hits };
+    if (best.hits.length >= 2) break;
   }
-  hits.sort((a, b) => (Math.abs(b.y - a.y) > 8 ? b.y - a.y : a.x - b.x));
-  return { hits, provider: 'vector' };
+  best!.hits.sort(readingOrder);
+  return best!;
 }
 
-/** Every copy of the symbol around `seed`: paths tracing the seed's exact
- *  shape (in any quarter turn or mirror) whose surroundings, inside the
- *  symbol's box, carry the same ink. */
-function matchSymbol(page: VectorPage, seed: VectorPath, near: Index): ScanHit[] {
-  const sw = seed.x1 - seed.x0;
-  const sh = seed.y1 - seed.y0;
-  const tol = Math.max(0.1, 0.02 * Math.max(sw, sh));
-  const margin = Math.max(0.5, 0.03 * Math.max(sw, sh));
-  const step = Math.max(0.05, Math.max(sw, sh) / COVER / 2);
-  const box: Box = [seed.x0 - margin, seed.y0 - margin, seed.x1 + margin, seed.y1 + margin];
-  const template = ink(near(box), box, step);
+export function vectorScan(page: VectorPage, clicked: Pt): ScanResult {
+  const taught = vectorTemplate(page, clicked);
+  return 'error' in taught ? taught : { hits: taught.hits, provider: 'vector' };
+}
 
+/** Every copy of a taught symbol on a sheet (any sheet), in reading order. */
+export function matchVectorTemplate(page: VectorPage, template: VectorTemplate): ScanHit[] {
+  return matchSymbol(page, template, index(page.paths, template.maxSize)).sort(readingOrder);
+}
+
+/** Stable numbering: rows top to bottom, then left to right. */
+const readingOrder = (a: ScanHit, b: ScanHit) => (Math.abs(b.y - a.y) > 8 ? b.y - a.y : a.x - b.x);
+
+/** The template for the symbol around `seed`. */
+function teach(seed: VectorPath, near: Index, maxSize: number): VectorTemplate {
+  const w = seed.x1 - seed.x0;
+  const h = seed.y1 - seed.y0;
+  const tol = Math.max(0.1, 0.02 * Math.max(w, h));
+  const margin = Math.max(0.5, 0.03 * Math.max(w, h));
+  const step = Math.max(0.05, Math.max(w, h) / COVER / 2);
+  const box: Box = [seed.x0 - margin, seed.y0 - margin, seed.x1 + margin, seed.y1 + margin];
+  const sampled = ink(near(box), box, step);
+  const rel: number[] = [];
+  for (let k = 0; k < sampled.length; k += 2) rel.push(sampled[k] + box[0] - seed.x0, sampled[k + 1] + box[1] - seed.y0);
+  return { cmds: seed.cmds, shape: turned(seed, seed.x0, seed.y0, VARIANTS[0]), w, h, ink: rel, tol, margin, step, maxSize };
+}
+
+/** Every copy of a template's symbol: paths tracing the seed's exact shape
+ *  (in any quarter turn or mirror) whose surroundings, inside the symbol's
+ *  box, carry the same ink. */
+function matchSymbol(page: VectorPage, t: VectorTemplate, near: Index): ScanHit[] {
+  const { tol, margin, step } = t;
   const hits: ScanHit[] = [];
   const seen = (x: number, y: number) => hits.some((h) => Math.abs(h.x - x) <= tol * 2 && Math.abs(h.y - y) <= tol * 2);
 
   for (const v of VARIANTS) {
     // the seed turned by v, re-anchored at its new bbox minimum
-    const shape = turned(seed, seed.x0, seed.y0, v);
+    const shape = new Float64Array(t.shape.length);
+    for (let k = 0; k < shape.length; k += 2) {
+      shape[k] = v[0] * t.shape[k] + v[2] * t.shape[k + 1];
+      shape[k + 1] = v[1] * t.shape[k] + v[3] * t.shape[k + 1];
+    }
     let mx = Infinity;
     let my = Infinity;
     for (let k = 0; k < shape.length; k += 2) {
@@ -382,17 +436,17 @@ function matchSymbol(page: VectorPage, seed: VectorPath, near: Index): ScanHit[]
       shape[k + 1] -= my;
     }
     // the template's ink turned the same way, relative to a copy's box
-    const [w, h] = v[0] ? [sw, sh] : [sh, sw];
+    const [w, h] = v[0] ? [t.w, t.h] : [t.h, t.w];
     const turnedInk: number[] = [];
-    for (let k = 0; k < template.length; k += 2) {
-      const x = template[k] + box[0] - seed.x0;
-      const y = template[k + 1] + box[1] - seed.y0;
+    for (let k = 0; k < t.ink.length; k += 2) {
+      const x = t.ink[k];
+      const y = t.ink[k + 1];
       turnedInk.push(v[0] * x + v[2] * y - mx + margin, v[1] * x + v[3] * y - my + margin);
     }
     const want = cover(turnedInk, w + 2 * margin, h + 2 * margin);
 
     for (const c of page.paths) {
-      if (!traces(c, seed.cmds, shape, c.x0, c.y0, tol)) continue;
+      if (!traces(c, t.cmds, shape, c.x0, c.y0, tol)) continue;
       const cx = (c.x0 + c.x1) / 2;
       const cy = (c.y0 + c.y1) / 2;
       if (seen(cx, cy)) continue;

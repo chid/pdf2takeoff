@@ -5,8 +5,10 @@
 // shape signature. Runs in well under a second per sheet on typed arrays
 // alone. Tier 2 (scan-onnx.ts) is a trained detector that slots in behind
 // the same ScanResult interface; scan.ts picks whichever is available.
+// cvTemplate() keeps the clicked component as a CvTemplate, and
+// matchCvTemplate() counts it on another sheet's raster.
 
-import type { Pt } from './types.ts';
+import type { Pt, ScanHit } from './types.ts';
 import type { RasterPage } from './ports.ts';
 import type { ScanResult } from './types.ts';
 
@@ -30,17 +32,31 @@ interface Component {
   sig: Float32Array;
 }
 
+/** A component taught on one sheet. Its size is kept with the raster scale
+ *  it was measured at (px per PDF point), so another sheet rendered at any
+ *  scale compares in physical units; aspect, fill and signature are
+ *  scale-free. */
+export interface CvTemplate {
+  /** Ink pixels at pxPerPt. */
+  px: number;
+  pxPerPt: number;
+  aspect: number;
+  fill: number;
+  sig: Float32Array;
+}
+
 export function cvScan(raster: RasterPage, clicked: Pt): ScanResult {
+  const taught = cvTemplate(raster, clicked);
+  if ('error' in taught) return taught;
+  return { hits: taught.hits, provider: 'cv', templatePx: taught.template.px };
+}
+
+/** Teach the scan from a click: the clicked component as a template, and
+ *  its matches on this sheet in reading order. */
+export function cvTemplate(raster: RasterPage, clicked: Pt): { template: CvTemplate; hits: ScanHit[] } | { error: string } {
   const w = raster.width;
   const h = raster.height;
-  const data = raster.data;
-
-  // ink mask — vector CAD output is high-contrast, a fixed threshold is enough
-  const mask = new Uint8Array(w * h);
-  for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
-    const lum = (data[p] * 299 + data[p + 1] * 587 + data[p + 2] * 114) / 1000;
-    mask[i] = lum < 150 ? 1 : 0;
-  }
+  const mask = inkMask(raster);
 
   // clicked point → raster px (with a small tolerance for anti-aliased edges)
   const click = raster.toRaster(clicked.x, clicked.y);
@@ -66,7 +82,67 @@ export function cvScan(raster: RasterPage, clicked: Pt): ScanResult {
   }
   if (!clickedLabel) return { error: 'click directly on a symbol to teach the scan' };
 
-  // connected components, 8-connectivity, iterative flood fill
+  const { labels, comps } = components(mask, w, h);
+
+  // resolve the clicked component (first ink pixel at/around the click)
+  let found: Component | undefined;
+  if (px >= 0 && py >= 0 && px < w && py < h) {
+    outer: for (let r = 0; r <= 10; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const x = px + dx;
+          const y = py + dy;
+          if (x < 0 || y < 0 || x >= w || y >= h) continue;
+          const l = labels[y * w + x];
+          if (l) {
+            found = comps.find((c) => c.label === l);
+            break outer;
+          }
+        }
+      }
+    }
+  }
+  if (!found)
+    return {
+      error: 'that symbol is too small or part of a large structure; try a smaller, isolated symbol',
+    };
+
+  const template: CvTemplate = {
+    px: found.count,
+    pxPerPt: pxPerPt(raster),
+    aspect: (found.x1 - found.x0 + 1) / (found.y1 - found.y0 + 1),
+    fill: found.fill,
+    sig: found.sig,
+  };
+  return { template, hits: matchComponents(raster, comps, template) };
+}
+
+/** Every match of a taught component on a sheet (any sheet), in reading order. */
+export function matchCvTemplate(raster: RasterPage, template: CvTemplate): ScanHit[] {
+  return matchComponents(raster, components(inkMask(raster), raster.width, raster.height).comps, template);
+}
+
+/** Raster px per PDF point, read off the page transform. */
+function pxPerPt(raster: RasterPage): number {
+  const a = raster.toRaster(0, 0);
+  const b = raster.toRaster(1, 0);
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/** Ink mask — vector CAD output is high-contrast, a fixed threshold is enough. */
+function inkMask(raster: RasterPage): Uint8Array {
+  const data = raster.data;
+  const mask = new Uint8Array(raster.width * raster.height);
+  for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+    const lum = (data[p] * 299 + data[p + 1] * 587 + data[p + 2] * 114) / 1000;
+    mask[i] = lum < 150 ? 1 : 0;
+  }
+  return mask;
+}
+
+/** Connected components, 8-connectivity, iterative flood fill. Specks and
+ *  sheet-sized structures (borders, walls) are labelled but not kept. */
+function components(mask: Uint8Array, w: number, h: number): { labels: Int32Array; comps: Component[] } {
   const labels = new Int32Array(w * h);
   const comps: Component[] = [];
   const stack: number[] = [];
@@ -113,41 +189,24 @@ export function cvScan(raster: RasterPage, clicked: Pt): ScanResult {
     if (count < MIN_COMPONENT_PX || count > (w * h) / 16) continue;
     comps.push(makeComponent(id, count, x0, y0, x1, y1, sx / count, sy / count, labels, w));
   }
+  return { labels, comps };
+}
 
-  // resolve the clicked component (first ink pixel at/around the click)
-  let template: Component | undefined;
-  if (px >= 0 && py >= 0 && px < w && py < h) {
-    outer: for (let r = 0; r <= 10; r++) {
-      for (let dy = -r; dy <= r; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          const x = px + dx;
-          const y = py + dy;
-          if (x < 0 || y < 0 || x >= w || y >= h) continue;
-          const l = labels[y * w + x];
-          if (l) {
-            template = comps.find((c) => c.label === l);
-            break outer;
-          }
-        }
-      }
-    }
-  }
-  if (!template)
-    return {
-      error: 'that symbol is too small or part of a large structure; try a smaller, isolated symbol',
-    };
-
-  // match every component against the template
-  const aspectT = (template.x1 - template.x0 + 1) / (template.y1 - template.y0 + 1);
-  const hits: Pt[] = [];
+/** Match every component against the template. */
+function matchComponents(raster: RasterPage, comps: Component[], t: CvTemplate): ScanHit[] {
+  // the template's ink area at this raster's scale (exactly t.px on the
+  // sheet it was taught on)
+  const scale = pxPerPt(raster) / t.pxPerPt;
+  const px = scale === 1 ? t.px : t.px * scale * scale;
+  const hits: ScanHit[] = [];
   for (const c of comps) {
-    const sizeRatio = Math.sqrt(template.count / c.count);
+    const sizeRatio = Math.sqrt(px / c.count);
     if (sizeRatio < SIZE_BAND || sizeRatio > 1 / SIZE_BAND) continue;
     const aspectC = (c.x1 - c.x0 + 1) / (c.y1 - c.y0 + 1);
-    if (Math.abs(Math.log(aspectT / aspectC)) > ASPECT_BAND) continue;
-    if (Math.abs(template.fill - c.fill) > FILL_BAND) continue;
+    if (Math.abs(Math.log(t.aspect / aspectC)) > ASPECT_BAND) continue;
+    if (Math.abs(t.fill - c.fill) > FILL_BAND) continue;
     let d = 0;
-    for (let i = 0; i < template.sig.length; i++) d += Math.abs(template.sig[i] - c.sig[i]);
+    for (let i = 0; i < t.sig.length; i++) d += Math.abs(t.sig[i] - c.sig[i]);
     if (d <= MATCH_DIST) {
       hits.push(raster.toPdf(c.cx, c.cy));
     }
@@ -155,8 +214,9 @@ export function cvScan(raster: RasterPage, clicked: Pt): ScanResult {
 
   // stable numbering: reading order, rows then columns
   hits.sort((a, b) => (Math.abs(b.y - a.y) > 8 ? b.y - a.y : a.x - b.x));
-  return { hits, provider: 'cv', templatePx: template.count };
+  return hits;
 }
+
 
 function makeComponent(
   label: number,

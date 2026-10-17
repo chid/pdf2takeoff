@@ -1,5 +1,5 @@
 {
-  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff cannot write into those yet; the suite asserts it fails clearly). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff cannot write into those yet; the suite asserts it fails clearly). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
   "sets": [
     {
       "id": "kingborough-da-2024-64",
@@ -164,6 +164,82 @@
           "count": 4,
           "what": "section markers 1-4 (turned copies, filled halves, different numbers)",
           "source": "p43 First Floor Plan, counted by eye 2026-10-17"
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            118.0,
+            1119.0
+          ],
+          "counts": {
+            "37": 0,
+            "40": 1,
+            "41": 1,
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 1,
+            "46": 1,
+            "47": 2,
+            "48": 2,
+            "49": 7
+          },
+          "what": "drawing-title bubbles (one per plan, two per elevation sheet, seven on the shadow diagrams)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            767.0,
+            82.7
+          ],
+          "counts": {
+            "37": 0,
+            "39": 0,
+            "40": 1,
+            "41": 1,
+            "42": 1,
+            "43": 1,
+            "44": 1,
+            "45": 1,
+            "46": 1,
+            "47": 0,
+            "48": 0,
+            "49": 0
+          },
+          "what": "north points (upright on pp40-41, turned on pp42-46; none on the title page, layout or elevations)",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17"
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            118.0,
+            1119.0
+          ],
+          "counts": {
+            "38": 1,
+            "39": 1
+          },
+          "what": "drawing-title bubbles on the 1:3000 site sheets",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
+          "knownIssue": "drawn 31.3 pt across there vs 29.3 pt on the 1:100 sheets; the vector tier matches a block at its taught size only"
+        },
+        {
+          "kind": "schedule",
+          "page": 43,
+          "at": [
+            118.0,
+            1119.0
+          ],
+          "counts": {
+            "36": 0
+          },
+          "what": "no drawing-title bubble on hydraulic sheet H07",
+          "source": "pp36-49 rendered and checked by eye (taught symbol and disputed hits at 4x crops), 2026-10-17",
+          "knownIssue": "a same-size pipe circle with a leader arrowhead at its centre passes the ink check (own 0.775 vs COVER_OWN 0.75)"
         }
       ]
     }

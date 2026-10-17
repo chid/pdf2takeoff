@@ -12,7 +12,7 @@ import { buildAnnotatedPdf } from '../engine/annotate.ts';
 import { buildMatrix, toDelimited, xlsxBytes, groupsOf } from '../engine/export.ts';
 import { nextId, defaultLabel } from '../engine/geometry.ts';
 import type { DisplayUnit } from '../engine/units.ts';
-import type { Calibration, Markup } from '../engine/types.ts';
+import type { Calibration, Markup, ScanHit } from '../engine/types.ts';
 import { parseSpec, parseScaleSpec, parseRunSpec } from './spec.ts';
 import { PDFDocument } from 'pdf-lib';
 
@@ -31,9 +31,12 @@ Usage:
       overlay of the first changed sheet; --png-dir (folder mode) writes
       an overlay per changed pair.
   pdf2takeoff scan <file.pdf> --page N --at x,y [--all-pages]
-      Click-point auto-count (tier-1 CV): every match on the page as JSON.
+      Click-point auto-count: every match on the page as JSON (vector
+      paths where the symbol is drawn as vectors, else raster CV).
       --at is in PDF points; run "info" first to see page sizes.
-      --all-pages scans every sheet and returns a per-page schedule.
+      --all-pages teaches the symbol at --at on --page, then counts that
+      symbol on every sheet (wherever it sits) and returns a per-page
+      schedule with hits and a total.
   pdf2takeoff export <file.pdf> [--scale 1:100] [--unit m] [--format csv|tsv|xlsx] [-o out]
       Read pdf2takeoff annotations back out as a quantities table.
       csv/tsv print to stdout without -o; xlsx requires -o.
@@ -89,8 +92,12 @@ async function cmdScan(file: string, pageArg: string, atArg: string, allPages: b
   }
   const doc = await openPdf(readPdf(file));
   if (allPages) {
-    const schedule = await scanDocAllPages(doc, { x: xy[0], y: xy[1] });
-    return { file, ...schedule };
+    const schedule = await scanDocAllPages(doc, page, { x: xy[0], y: xy[1] });
+    return {
+      file,
+      ...schedule,
+      pages: schedule.pages.map((p) => ({ ...p, hits: p.hits.map(roundHit) })),
+    };
   }
   const result = await scanDocAt(doc, page, { x: xy[0], y: xy[1] });
   if ('error' in result) throw new Error(result.error);
@@ -99,13 +106,15 @@ async function cmdScan(file: string, pageArg: string, atArg: string, allPages: b
     page,
     provider: result.provider,
     count: result.hits.length,
-    hits: result.hits.map((h) => ({
-      x: Math.round(h.x * 100) / 100,
-      y: Math.round(h.y * 100) / 100,
-      ...(h.label !== undefined ? { label: h.label } : {}),
-    })),
+    hits: result.hits.map(roundHit),
   };
 }
+
+const roundHit = (h: ScanHit) => ({
+  x: Math.round(h.x * 100) / 100,
+  y: Math.round(h.y * 100) / 100,
+  ...(h.label !== undefined ? { label: h.label } : {}),
+});
 
 async function cmdCompare(fileA: string, fileB: string, png: string | undefined, pngDir: string | undefined, threshold: number): Promise<unknown> {
   // directory pair -> batch compare across the two revision folders

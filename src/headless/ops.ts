@@ -7,18 +7,23 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { createCanvas } from '@napi-rs/canvas';
 import { renderRasterNode, rasterizeToNode } from './raster-node.ts';
 import { openPdf, vectorPageNode } from './pdfjs-node.ts';
-import { scanForSimilar } from '../engine/scan.ts';
+import { countTemplate, scanForSimilar, teachSymbol } from '../engine/scan.ts';
+import type { ScanDeps } from '../engine/ports.ts';
 import { blendOverlay } from '../engine/compare.ts';
 import { diffMask, maskRegions } from '../engine/diff.ts';
-import type { Pt } from '../engine/types.ts';
+import type { Pt, ScanHit } from '../engine/types.ts';
 
 /** Scan at a click point, in PDF points: the vector tier, else tier-1 CV. */
 export async function scanDocAt(doc: PDFDocumentProxy, page: number, at: Pt) {
-  return scanForSimilar(page, at, {
+  return scanForSimilar(page, at, scanDeps(doc));
+}
+
+function scanDeps(doc: PDFDocumentProxy): ScanDeps {
+  return {
     renderRaster: (p, scale) => renderRasterNode(doc, p, scale),
     detector: async () => null,
     vectors: (p) => vectorPageNode(doc, p),
-  });
+  };
 }
 
 /** A sheet counts as changed above this fraction of changed pixels. */
@@ -200,16 +205,30 @@ export async function compareFolders(
   };
 }
 
-/** Scan a symbol across every page; pages without it count 0. */
-export async function scanDocAllPages(doc: PDFDocumentProxy, at: Pt) {
-  const pages: { page: number; count: number }[] = [];
+/** Teach a symbol from a click on one page, then count it on every page
+ *  (pages without it count 0). The taught template travels between pages,
+ *  not the click point, so each sheet is searched for that symbol wherever
+ *  it sits. */
+export async function scanDocAllPages(doc: PDFDocumentProxy, page: number, at: Pt) {
+  if (page > doc.numPages) throw new Error(`page ${page} is past the last page (${doc.numPages})`);
+  const deps = scanDeps(doc);
+  // a symbol drawn once per sheet is still worth counting across the set
+  const taught = await teachSymbol(page, at, deps, 1);
+  if ('error' in taught) throw new Error(`page ${page}: ${taught.error}`);
+  const pages: { page: number; count: number; hits: ScanHit[]; error?: string }[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     try {
-      const result = await scanDocAt(doc, p, at);
-      pages.push({ page: p, count: 'error' in result ? 0 : result.hits.length });
-    } catch {
-      pages.push({ page: p, count: 0 });
+      const result = p === page ? taught.result : await countTemplate(p, taught.template, deps);
+      if ('error' in result) pages.push({ page: p, count: 0, hits: [], error: result.error });
+      else pages.push({ page: p, count: result.hits.length, hits: result.hits });
+    } catch (err) {
+      pages.push({ page: p, count: 0, hits: [], error: err instanceof Error ? err.message : String(err) });
     }
   }
-  return { pages, total: pages.reduce((s, x) => s + x.count, 0) };
+  return {
+    taughtOn: page,
+    provider: taught.result.provider,
+    pages,
+    total: pages.reduce((s, x) => s + x.count, 0),
+  };
 }

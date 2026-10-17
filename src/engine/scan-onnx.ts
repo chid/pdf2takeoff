@@ -56,11 +56,75 @@ function letterboxCHW(r: RasterPage, S: number): { input: Float32Array; scale: n
   return { input, scale, dw, dh };
 }
 
+/** A class taught on one sheet: counted on another by running the detector
+ *  there and keeping that class. */
+export interface DetectorTemplate {
+  cls: number;
+  label: string;
+}
+
 export async function detectorScan(
   raster: RasterPage,
   clicked: Pt,
   det: DetectorSession,
 ): Promise<ScanResult> {
+  const taught = await detectorTemplate(raster, clicked, det);
+  if ('error' in taught) return taught;
+  return {
+    hits: taught.hits,
+    provider: 'detector',
+    note: `${taught.template.label} · ${det.modelName}`,
+  };
+}
+
+/** Teach the scan from a click: the class of the detection nearest it, and
+ *  every detection of that class on this sheet. */
+export async function detectorTemplate(
+  raster: RasterPage,
+  clicked: Pt,
+  det: DetectorSession,
+): Promise<{ template: DetectorTemplate; hits: ScanHit[] } | { error: string }> {
+  const kept = await detect(raster, det);
+  if (kept.length === 0) {
+    return { error: 'the detector found no symbols on this sheet; try the classic scan' };
+  }
+
+  // class of the detection nearest the click
+  let nearest = kept[0];
+  let nd = Infinity;
+  for (const d of kept) {
+    const dist = (d.x - clicked.x) ** 2 + (d.y - clicked.y) ** 2;
+    if (dist < nd) {
+      nd = dist;
+      nearest = d;
+    }
+  }
+  const template = { cls: nearest.cls, label: det.classes[nearest.cls] ?? `symbol ${nearest.cls}` };
+  return { template, hits: ofClass(kept, template) };
+}
+
+/** Every detection of a taught class on a sheet (any sheet), in reading order. */
+export async function matchDetectorTemplate(raster: RasterPage, template: DetectorTemplate, det: DetectorSession): Promise<ScanHit[]> {
+  return ofClass(await detect(raster, det), template);
+}
+
+function ofClass(kept: Detection[], t: DetectorTemplate): ScanHit[] {
+  const hits: ScanHit[] = kept.filter((d) => d.cls === t.cls).map((d) => ({ x: d.x, y: d.y, label: t.label, score: d.score }));
+  // stable numbering: reading order, rows then columns
+  hits.sort((a, b) => (Math.abs(b.y - a.y) > 8 ? b.y - a.y : a.x - b.x));
+  return hits;
+}
+
+/** A kept detection: its box centre in PDF points. */
+interface Detection {
+  x: number;
+  y: number;
+  cls: number;
+  score: number;
+}
+
+/** Run the detector page-wide: decoded, thresholded, per-class NMS. */
+async function detect(raster: RasterPage, det: DetectorSession): Promise<Detection[]> {
   const S = det.inputSize;
   const { input, scale, dw, dh } = letterboxCHW(raster, S);
   const { data: arr, dims } = await det.run(input, S);
@@ -129,35 +193,9 @@ export async function detectorScan(
   // letterbox px -> PDF points (viewport transform is uniform for 0/90/180/270)
   const toPdf = (x: number, y: number): Pt => raster.toPdf((x - dw) / scale, (y - dh) / scale);
 
-  const kept = [...keep].map((i) => dets[i]);
-  if (kept.length === 0) {
-    return { error: 'the detector found no symbols on this sheet; try the classic scan' };
-  }
-
-  // class of the detection nearest the click
-  let nearest = kept[0];
-  let nd = Infinity;
-  for (const d of kept) {
+  return [...keep].map((i) => {
+    const d = dets[i];
     const c = toPdf((d.x1 + d.x2) / 2, (d.y1 + d.y2) / 2);
-    const dist = (c.x - clicked.x) ** 2 + (c.y - clicked.y) ** 2;
-    if (dist < nd) {
-      nd = dist;
-      nearest = d;
-    }
-  }
-
-  const hits: ScanHit[] = kept
-    .filter((d) => d.cls === nearest.cls)
-    .map((d) => {
-      const c = toPdf((d.x1 + d.x2) / 2, (d.y1 + d.y2) / 2);
-      return { x: c.x, y: c.y, label: det.classes[d.cls] ?? `symbol ${d.cls}`, score: d.score };
-    });
-
-  // stable numbering: reading order, rows then columns
-  hits.sort((a, b) => (Math.abs(b.y - a.y) > 8 ? b.y - a.y : a.x - b.x));
-  return {
-    hits,
-    provider: 'detector',
-    note: `${det.classes[nearest.cls]} · ${det.modelName}`,
-  };
+    return { x: c.x, y: c.y, cls: d.cls, score: d.score };
+  });
 }

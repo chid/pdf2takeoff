@@ -276,24 +276,21 @@ export async function runMcpServer(): Promise<void> {
     'scan_symbol',
     {
       description:
-        'Click-to-teach auto-count: give one instance of a repeated symbol (its centre in PDF points) and the CV scan finds and counts every match on the sheet, adding each as a count markup. Look at render_page output first to pick a symbol.',
+        'Click-to-teach auto-count: give one instance of a repeated symbol (its centre in PDF points) and the scan (exact vector-path match where the symbol is drawn as vectors, else raster CV) finds and counts every match on the sheet, adding each as a count markup. With all_pages the symbol is taught on `page` and that same symbol is counted on every sheet wherever it sits, returning a per-page schedule. Look at render_page output first to pick a symbol.',
       inputSchema: {
         id: z.string(),
         page: z.number().int().min(1).default(1),
         at: ptTuple.describe('a point on the symbol to teach from, PDF points'),
         label: z.string().optional().describe('label for the count markups'),
-        all_pages: z.boolean().default(false).describe('scan every sheet and return a per-page schedule (counts added per page)'),
+        all_pages: z.boolean().default(false).describe('teach on `page`, then count the taught symbol on every sheet and return a per-page schedule (hits added as count markups on their pages)'),
       },
     },
     async ({ id, page, at, label, all_pages }) => {
       const d = getDoc(id);
       if (all_pages) {
-        const schedule = await scanDocAllPages(d.doc, { x: at[0], y: at[1] });
-        for (const p of schedule.pages) {
-          if (p.count === 0) continue;
-          const result = await scanDocAt(d.doc, p.page, { x: at[0], y: at[1] });
-          if ('error' in result) continue;
-          for (const hit of result.hits) {
+        const { pages, ...rest } = await scanDocAllPages(d.doc, page, { x: at[0], y: at[1] });
+        for (const p of pages) {
+          for (const hit of p.hits) {
             d.markups.push({
               id: nextId('mcp'),
               page: p.page,
@@ -304,6 +301,8 @@ export async function runMcpServer(): Promise<void> {
             });
           }
         }
+        // the hits are now markups (list_markups); the schedule stays compact
+        const schedule = { ...rest, pages: pages.map(({ hits: _, ...p }) => p) };
         return text({ schedule, label: label ?? 'Scanned symbol' });
       }
       const result = await scanDocAt(d.doc, page, { x: at[0], y: at[1] });

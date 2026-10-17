@@ -28,6 +28,7 @@ import { parsePages } from './pages.ts';
 type Expectation = { page: number; what: string; knownIssue?: string } & (
   | { kind: 'length'; scale: string; points: [number, number][]; meters: number; tolerance: number }
   | { kind: 'count'; at: [number, number]; count: number }
+  | { kind: 'schedule'; at: [number, number]; counts: Record<string, number> }
 );
 
 interface CouncilSet {
@@ -167,8 +168,27 @@ for (const set of manifest.sets) {
       assert.deepEqual(await annotationCounts(again), { ours: markups.length, foreign: before.foreign });
     });
 
+    // one all-pages run per taught symbol, shared by its schedule checks
+    const schedules = new Map<string, { status: number | null; stdout: string; stderr: string }>();
+    const allPages = (page: number, at: [number, number]) => {
+      const key = `${page}@${at.join(',')}`;
+      if (!schedules.has(key)) schedules.set(key, node([join(root, 'bin', 'pdf2takeoff.js'), 'scan', file, '--page', String(page), '--at', at.join(','), '--all-pages']));
+      return schedules.get(key)!;
+    };
+
     for (const e of set.expect ?? []) {
       const todo = e.knownIssue ?? false;
+      if (e.kind === 'schedule') {
+        await t.test(`taught on p${e.page}, counted on every sheet: ${e.what}`, { todo }, (st) => {
+          const r = allPages(e.page, e.at);
+          assert.equal(r.status, 0, r.stderr);
+          const out = JSON.parse(r.stdout);
+          const got = Object.fromEntries(Object.keys(e.counts).map((p) => [p, out.pages[Number(p) - 1].count]));
+          st.diagnostic(`${out.provider} tier, ${out.total} across the set`);
+          assert.deepEqual(got, e.counts);
+        });
+        continue;
+      }
       if (e.kind === 'length') {
         await t.test(`p${e.page} measures ${e.meters} m at ${e.scale}: ${e.what}`, { todo }, () => {
           const points = e.points.map(([x, y]) => ({ x, y }));

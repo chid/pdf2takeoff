@@ -62,6 +62,7 @@ npm run cli -- info drawing.pdf                      # pages, sizes, annotation 
 npm run cli -- compare r2.pdf r3.pdf --png diff.png  # per-sheet change fractions + regions
 npm run cli -- compare r2/ r3/ --png-dir ov/         # folders: batch the whole set, pair by filename
 npm run cli -- scan drawing.pdf --page 1 --at 88,271 # click-point auto-count, JSON hits
+npm run cli -- scan set.pdf --page 3 --at 88,271 --all-pages # teach on p3, count on every sheet
 npm run cli -- export drawing.pdf --scale 1:100      # annotations → quantities CSV
 npm run cli -- annotate drawing.pdf --spec takeoff.yaml -o marked.pdf
 npm run cli -- run takeoff.yaml --prev run-a.json   # regenerate + diff quantities

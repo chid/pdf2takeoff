@@ -148,6 +148,16 @@ check(
   saved.markups === 12 && existsSync(pdfPath) && readFileSync(pdfPath).subarray(0, 5).toString() === '%PDF-',
 );
 
+// all_pages: taught on page 1, counted on every sheet, hits added as markups
+const setId = textOf(await call('open_document', { path: sample })).id;
+const schedule = textOf(await call('scan_symbol', { id: setId, page: 1, at: [88.35, 271.42], all_pages: true })).schedule;
+const setMarkups = textOf(await call('list_markups', { id: setId })).markups;
+check(
+  'scan_symbol (all_pages): 8 on the taught sheet, every hit a markup',
+  schedule.taughtOn === 1 && schedule.pages[0].count === 8 && setMarkups.length === schedule.total,
+  JSON.stringify(schedule),
+);
+
 const compared = textOf(await call('compare_revisions', { a: sample, b: revB }));
 check('compare_revisions: both sheets changed', JSON.stringify(compared.changedSheets) === '[1,2]');
 

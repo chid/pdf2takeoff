@@ -4,19 +4,18 @@ Suggestions from running the engine on real council drawing sets
 (`test/council/`) and building the vector scan tier. Ranked by value to an
 estimator for the effort, with what each would reuse.
 
-## 1. Teach once, count every sheet
+## 1. Teach once, count every sheet (done)
 
-`scan --all-pages` (and MCP `scan_symbol` with `all_pages`) reuses the click
-**coordinates** on every page, so on sheet 2 it counts whatever happens to sit
-at that point, not the symbol taught on sheet 1. A real takeoff counts one
-fitting type across 10–40 sheets.
-
-Build: let `vectorScan` return the taught template (seed path + ink cover)
-and add `matchTemplate(page, template)`; `--all-pages` teaches on `--page`
-and matches the template everywhere. The raster tier can do the same with
-its component signature. Test: the council sets repeat title-block and
-section-marker symbols across sheets, so per-sheet counts can be checked by
-eye like the existing `count` expectations.
+`scan --all-pages` (and MCP `scan_symbol` with `all_pages`) used to reuse the
+click **coordinates** on every page. It now teaches on `--page`
+(`teachSymbol` in `src/engine/scan.ts` keeps the answering tier's template:
+the vector seed path and ink cover, or the CV component's size, aspect, fill
+and signature) and counts that template on every sheet (`countTemplate`).
+Checked on the Wattle Hill set: drawing-title bubbles and north points per
+sheet (`schedule` expectations in the council manifest). Open: copies drawn
+at another size are missed (see 4), and a lone symbol taught across sheets
+has no second copy on its own sheet to vouch for it, so the ink check alone
+decides, which let one same-size pipe circle through on a hydraulic sheet.
 
 ## 2. Legend-driven schedules
 
@@ -42,7 +41,9 @@ page's calibration. Output: one length markup per run, plus a total.
 The vector tier needs copies to repeat exactly. Two real misses it can't
 handle yet:
 
-- the same symbol at several sizes (Kingborough's site-plan trees);
+- the same symbol at several sizes (Kingborough's site-plan trees; the
+  Wattle Hill drawing-title bubble, 29.3 pt on the 1:100 sheets and 31.3 pt
+  on the 1:3000 site sheets);
 - circles that CAD tessellated differently per copy.
 
 Add a second pass: candidates found by bbox aspect and ink cover alone,

@@ -55,7 +55,7 @@ pdf2takeoff runs in any modern browser on any OS.
 | Click-to-teach auto-count | — (nearest: VisualSearch) | ⭐ | ~100 ms local CV; no model download, nothing uploaded |
 | Symbol search | Complete (VisualSearch) | ⭐ | Covered by Scan — and it counts, not just finds |
 | ML symbol detection | — | 🔜 | In-browser ONNX; Kaggle training notebook ready |
-| Whole-set symbol schedules | — | ✅ | `scan --all-pages` / MCP `all_pages`: per-page schedule in one call (CV today, classes when the model lands) |
+| Whole-set symbol schedules | — | ✅ | `scan --all-pages` / MCP `all_pages`: teach the symbol on one sheet, count it on every sheet wherever it sits; per-page schedule in one call (vector or CV template today, classes when the model lands) |
 
 ## Markups, list & export
 

@@ -33,6 +33,9 @@ Plus hand-checked facts under a set's `expect`:
 - `length`: two points and a scale must measure a printed dimension
 - `count`: scanning from one instance must find this many (the report also
   shows what the raster CV tier finds on its own, as a baseline)
+- `schedule`: teaching the symbol on `page` and counting it across the set
+  (`scan --all-pages`) must find `counts[page]` on each listed page; list
+  only pages you have looked at
 
 An expectation the engine doesn't meet yet carries `knownIssue` and reports
 as a TODO instead of a failure; delete the field once it's fixed.
