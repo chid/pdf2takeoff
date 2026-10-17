@@ -1,5 +1,5 @@
 {
-  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff cannot write into those yet; the suite asserts it fails clearly). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
+  "about": "Public council development-application drawing sets for the local real-drawing suite (npm run test:council). Drawings are copyright of their authors and were published for public exhibition: fetch them into test/council/cache/ with scripts/fetch-council.mjs, never commit them. drawingPages are the sheets rendered and scanned (report/form pages are skipped); rotatedPages carry a /Rotate entry. encrypted marks edit-restricted sets (pdf2takeoff writes into those with an incremental update that keeps the original bytes and encryption). expect holds hand-checked facts: \"length\" = the distance between two points at the given scale must match a printed dimension; \"count\" = scanning from one instance must find this many; \"schedule\" = teaching the symbol on one page (scan --all-pages) must count this many on each listed page. knownIssue marks an expectation the engine does not meet yet (reported as todo, not a failure).",
   "sets": [
     {
       "id": "kingborough-da-2024-64",
@@ -13,7 +13,7 @@
       "drawingPages": "3-8",
       "rotatedPages": "",
       "encrypted": true,
-      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; permissions allow annotating, but pdf-lib cannot write encrypted files."
+      "notes": "A3 sheets with all drawing text converted to outlines (no extractable scale text); raster logos in every title block; council stamp annotation on p1. Encrypted with no open password; AES-256 (V5/R6, AESV3 for strings and streams), linearized, objects in encrypted object streams; permissions (P -1052) allow annotating, so markups go in as an incremental update."
     },
     {
       "id": "sorell-5-2025-2",

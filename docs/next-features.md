@@ -60,9 +60,11 @@ which happens when a sheet is printed to a different paper size than stated.
 
 ## Also worth doing
 
-- **Save into encrypted PDFs.** Kingborough's set is encrypted but allows
-  annotations. Write the annotations as an incremental update (appended
-  objects plus a new xref) instead of a pdf-lib rewrite.
+- **Incremental saves for unencrypted PDFs too.** Encrypted files already
+  save as an incremental update (src/engine/incremental.ts). Doing the same
+  for plain files would keep digital signatures valid and avoid rewriting
+  large sets, at the cost of the file growing on every save; it needs the
+  round-trip and council suites run against both paths before switching.
 - **Vector revision compare.** Diff the path sets of two revisions to get
   exact change clouds, without pixel noise. This needs a revision pair in
   the council suite first.

@@ -2,15 +2,17 @@
 // Polygon, FreeText) so they open in Bluebeam Revu, Acrobat and friends.
 // Pure pdf-lib: bytes in, bytes out — works identically in any host.
 
-import { PDFDict, PDFDocument, PDFHexString, PDFName, PDFString, type PDFObject, type PDFPage } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFHexString, PDFName, PDFRef, PDFString, type PDFObject, type PDFPage } from 'pdf-lib';
 import type { Calibration, Markup, Pt } from './types.ts';
 import { markupLength, markupArea, markupPerimeter, markupVolume, markupAngle } from './geometry.ts';
 import { formatLength, formatArea, formatVolume, type DisplayUnit } from './units.ts';
 import { resolveCalibration, type Viewport } from './viewports.ts';
+import { appendIncrementalUpdate, loadEncryptedPdf, type EncryptedPdf } from './incremental.ts';
+import { PdfCryptError } from './pdfcrypt.ts';
 
 export const ANNOTATION_AUTHOR = 'pdf2takeoff';
 export const ENCRYPTED_PDF_MESSAGE =
-  'this PDF is encrypted (edit-restricted), and pdf2takeoff cannot write markups into encrypted PDFs yet: export CSV or Excel instead';
+  "this PDF is encrypted and its permissions don't allow adding annotations, so pdf2takeoff cannot write markups into it: export CSV or Excel instead";
 
 /** Private annotation key holding the markup's exact data as JSON, so a
  *  round-trip never has to parse the human-readable Contents text. */
@@ -96,18 +98,32 @@ function bbox(points: Pt[], pad: number): [number, number, number, number] {
 
 /** Drop the annotations a previous save wrote, so saving a reopened file
  *  replaces its markups instead of stacking a second copy on top. */
-function removeOwnAnnotations(page: PDFPage): void {
+function removeOwnAnnotations(page: PDFPage): boolean {
   const annots = page.node.Annots();
-  if (!annots) return;
+  if (!annots) return false;
   const kept: PDFObject[] = [];
   for (let i = 0; i < annots.size(); i++) {
     const dict = annots.lookup(i);
     const own = dict instanceof PDFDict && pdfText(dict.lookup(PDFName.of('T'))) === ANNOTATION_AUTHOR;
     if (!own) kept.push(annots.get(i));
   }
-  if (kept.length === annots.size()) return;
+  if (kept.length === annots.size()) return false;
   if (kept.length) page.node.set(PDFName.of('Annots'), page.doc.context.obj(kept));
   else page.node.delete(PDFName.of('Annots'));
+  return true;
+}
+
+/** Open an encrypted PDF for writing, or explain why it can't be. */
+async function openEncrypted(bytes: Uint8Array): Promise<EncryptedPdf> {
+  let pdf: EncryptedPdf;
+  try {
+    pdf = await loadEncryptedPdf(bytes);
+  } catch (e) {
+    if (e instanceof PdfCryptError) throw new Error(`${e.message}: export CSV or Excel instead`);
+    throw e;
+  }
+  if (!pdf.handler.canAnnotate) throw new Error(ENCRYPTED_PDF_MESSAGE);
+  return pdf;
 }
 
 export interface AnnotateOptions {
@@ -119,25 +135,31 @@ export interface AnnotateOptions {
 }
 
 /** Return a copy of the PDF with one standard annotation per markup,
- *  replacing any pdf2takeoff annotations already in it. */
+ *  replacing any pdf2takeoff annotations already in it. Encrypted
+ *  (edit-restricted) files whose permissions allow annotating get an
+ *  incremental update instead: the original bytes stay as they are and the
+ *  new and changed objects are appended, encrypted with the file's key. */
 export async function buildAnnotatedPdf(opts: AnnotateOptions): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(opts.bytes.slice(), { ignoreEncryption: true });
-  // edit-restricted council/consultant sets are common; pdf-lib can't
-  // re-encrypt them, so say so instead of leaking its load-time advice
-  if (pdfDoc.isEncrypted) throw new Error(ENCRYPTED_PDF_MESSAGE);
+  let pdfDoc = await PDFDocument.load(opts.bytes.slice(), { ignoreEncryption: true });
+  // pdf-lib can't write encryption, so encrypted files take the incremental path
+  const encrypted = pdfDoc.isEncrypted ? await openEncrypted(opts.bytes) : undefined;
+  if (encrypted) pdfDoc = encrypted.doc;
   pdfDoc.setProducer(PRODUCER);
   pdfDoc.setModificationDate(new Date());
 
   const pages = pdfDoc.getPages();
   const { context } = pdfDoc;
-  for (const page of pages) removeOwnAnnotations(page);
+  const changed = new Map<PDFRef, PDFObject>(); // for the incremental update
+  for (const page of pages) if (removeOwnAnnotations(page)) changed.set(page.ref, page.node);
 
   const addAnnot = (pageIndex: number, dict: Record<string, string | number | number[] | PDFObject>) => {
     const page = pages[pageIndex];
     const annots = page.node.Annots() ?? context.obj([]);
     page.node.set(PDFName.of('Annots'), annots);
-    const ref = context.register(context.obj(dict));
+    const annot = context.obj(dict);
+    const ref = context.register(annot);
     annots.push(ref);
+    changed.set(page.ref, page.node).set(ref, annot);
   };
 
   const payload = (m: Markup): MarkupPayload => ({
@@ -208,5 +230,8 @@ export async function buildAnnotatedPdf(opts: AnnotateOptions): Promise<Uint8Arr
     }
   }
 
-  return pdfDoc.save();
+  if (!encrypted) return pdfDoc.save();
+  const info = context.trailerInfo.Info;
+  if (info instanceof PDFRef) changed.set(info, context.lookup(info)!);
+  return appendIncrementalUpdate(opts.bytes, encrypted, [...changed]);
 }

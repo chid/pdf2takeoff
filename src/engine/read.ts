@@ -8,6 +8,7 @@ import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
 import type { Markup, MarkupType } from './types.ts';
 import { ANNOTATION_AUTHOR, PAYLOAD_KEY, pdfText } from './annotate.ts';
 import { toMeters, type Unit } from './units.ts';
+import { loadEncryptedPdf } from './incremental.ts';
 
 /** An annotation object, accessed structurally (pdf-lib reader or a renderer). */
 export type AnnotationLike = Record<string, unknown> & { subtype?: string; payload?: string };
@@ -189,7 +190,8 @@ export function parseMarkups(annots: AnnotationLike[], page: number, startIndex:
 
 /** Every pdf2takeoff markup in a PDF, read straight from its annotation
  *  dictionaries (renderers like PDF.js normalise Line coordinates and drop
- *  private keys). Unreadable or encrypted files yield no markups. */
+ *  private keys). Unreadable files, and encrypted ones that need a password
+ *  or use an unsupported handler, yield no markups. */
 export async function readPdfMarkups(bytes: Uint8Array): Promise<Markup[]> {
   let pdfDoc: PDFDocument;
   try {
@@ -197,7 +199,14 @@ export async function readPdfMarkups(bytes: Uint8Array): Promise<Markup[]> {
   } catch {
     return [];
   }
-  if (pdfDoc.isEncrypted) return [];
+  // encrypted (edit-restricted) files: decrypt the objects first
+  if (pdfDoc.isEncrypted) {
+    try {
+      pdfDoc = (await loadEncryptedPdf(bytes, pdfDoc.context)).doc;
+    } catch {
+      return [];
+    }
+  }
 
   const nums = (d: PDFDict, key: string): number[] | undefined => {
     const arr = d.lookup(PDFName.of(key));
