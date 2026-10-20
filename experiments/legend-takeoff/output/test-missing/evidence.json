@@ -1,0 +1,110 @@
+{
+  "documentId": "890f794a9704",
+  "sourceSha256": "890f794a9704a615be07ac883d744eb057172a84accfc58fc040b934800e65db",
+  "page": 1,
+  "coordinateFrame": "pdf-points-bottom-left",
+  "excludedRegions": [],
+  "legend": [],
+  "configurations": [
+    {
+      "config": "manual-exemplar",
+      "hits": [],
+      "quantities": [
+        {
+          "sheet": "test-missing",
+          "split": "held-out",
+          "config": "manual-exemplar",
+          "code": "DL1",
+          "status": "not-assessed",
+          "supported": null,
+          "unresolved": null,
+          "reason": "No resolved legend exemplar",
+          "provider": null,
+          "truncated": false,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "precision": null,
+          "recall": 0,
+          "exactCount": null,
+          "absoluteCountError": null,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "test-missing",
+          "split": "held-out",
+          "config": "manual-exemplar",
+          "code": "SO1",
+          "status": "not-assessed",
+          "supported": null,
+          "unresolved": null,
+          "reason": "No resolved legend exemplar",
+          "provider": null,
+          "truncated": false,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "precision": null,
+          "recall": 0,
+          "exactCount": null,
+          "absoluteCountError": null,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        }
+      ]
+    },
+    {
+      "config": "extracted-legend",
+      "hits": [],
+      "quantities": [
+        {
+          "sheet": "test-missing",
+          "split": "held-out",
+          "config": "extracted-legend",
+          "code": "DL1",
+          "status": "not-assessed",
+          "supported": null,
+          "unresolved": null,
+          "reason": "No resolved legend exemplar",
+          "provider": null,
+          "truncated": false,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "precision": null,
+          "recall": 0,
+          "exactCount": null,
+          "absoluteCountError": null,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "test-missing",
+          "split": "held-out",
+          "config": "extracted-legend",
+          "code": "SO1",
+          "status": "not-assessed",
+          "supported": null,
+          "unresolved": null,
+          "reason": "No resolved legend exemplar",
+          "provider": null,
+          "truncated": false,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "precision": null,
+          "recall": 0,
+          "exactCount": null,
+          "absoluteCountError": null,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,255 @@
+{
+  "documentId": "3917aaec69d6",
+  "sourceSha256": "3917aaec69d69e1f3d6ce3156e85206a5b8b252f5c0cac7fd6b56885495f6b9a",
+  "page": 1,
+  "coordinateFrame": "pdf-points-bottom-left",
+  "excludedRegions": [
+    {
+      "x0": 25,
+      "y0": 360,
+      "x1": 390,
+      "y1": 450
+    }
+  ],
+  "legend": [
+    {
+      "id": "3917aaec69d6:p1:DL1",
+      "code": "DL1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "DL1 - Recessed downlight",
+      "description": "Recessed downlight",
+      "candidates": [
+        {
+          "x0": 47,
+          "y0": 407,
+          "x1": 63,
+          "y1": 423
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 415
+      }
+    },
+    {
+      "id": "3917aaec69d6:p1:SO1",
+      "code": "SO1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "SO1 - Socket outlet",
+      "description": "Socket outlet",
+      "candidates": [
+        {
+          "x0": 46,
+          "y0": 379,
+          "x1": 64,
+          "y1": 391
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 385
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "config": "manual-exemplar",
+      "hits": [
+        {
+          "id": "3917aaec69d6:p1:DL1:4215c5096a",
+          "page": 1,
+          "code": "DL1",
+          "x": 110,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "3917aaec69d6:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "3917aaec69d6:p1:SO1:ea7bf39dae",
+          "page": 1,
+          "code": "SO1",
+          "x": 260,
+          "y": 150,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "3917aaec69d6:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "3917aaec69d6:p1:SO1:957320cd0f",
+          "page": 1,
+          "code": "SO1",
+          "x": 410,
+          "y": 150,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "3917aaec69d6:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "dev-lookalike",
+          "split": "development",
+          "config": "manual-exemplar",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 1,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "dev-lookalike",
+          "split": "development",
+          "config": "manual-exemplar",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 2,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        }
+      ]
+    },
+    {
+      "config": "extracted-legend",
+      "hits": [
+        {
+          "id": "3917aaec69d6:p1:DL1:4215c5096a",
+          "page": 1,
+          "code": "DL1",
+          "x": 110,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "3917aaec69d6:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 1
+        },
+        {
+          "id": "3917aaec69d6:p1:SO1:ea7bf39dae",
+          "page": 1,
+          "code": "SO1",
+          "x": 260,
+          "y": 150,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "3917aaec69d6:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 2
+        },
+        {
+          "id": "3917aaec69d6:p1:SO1:957320cd0f",
+          "page": 1,
+          "code": "SO1",
+          "x": 410,
+          "y": 150,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "3917aaec69d6:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 3
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "dev-lookalike",
+          "split": "development",
+          "config": "extracted-legend",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 1,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "dev-lookalike",
+          "split": "development",
+          "config": "extracted-legend",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 2,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        }
+      ]
+    }
+  ]
+}

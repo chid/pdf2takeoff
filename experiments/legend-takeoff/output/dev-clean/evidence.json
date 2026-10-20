@@ -1,0 +1,309 @@
+{
+  "documentId": "5c8e3d77f382",
+  "sourceSha256": "5c8e3d77f38273299a9a91315a44bb522f76d047b8a39c7bb3f77e5e88694570",
+  "page": 1,
+  "coordinateFrame": "pdf-points-bottom-left",
+  "excludedRegions": [
+    {
+      "x0": 25,
+      "y0": 360,
+      "x1": 390,
+      "y1": 450
+    }
+  ],
+  "legend": [
+    {
+      "id": "5c8e3d77f382:p1:DL1",
+      "code": "DL1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "DL1 - Recessed downlight",
+      "description": "Recessed downlight",
+      "candidates": [
+        {
+          "x0": 47,
+          "y0": 407,
+          "x1": 63,
+          "y1": 423
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 415
+      }
+    },
+    {
+      "id": "5c8e3d77f382:p1:SO1",
+      "code": "SO1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "SO1 - Socket outlet",
+      "description": "Socket outlet",
+      "candidates": [
+        {
+          "x0": 46,
+          "y0": 379,
+          "x1": 64,
+          "y1": 391
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 385
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "config": "manual-exemplar",
+      "hits": [
+        {
+          "id": "5c8e3d77f382:p1:DL1:86b835ffae",
+          "page": 1,
+          "code": "DL1",
+          "x": 100,
+          "y": 280,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "5c8e3d77f382:p1:DL1:7273c1af39",
+          "page": 1,
+          "code": "DL1",
+          "x": 220,
+          "y": 280,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "5c8e3d77f382:p1:DL1:5f20341311",
+          "page": 1,
+          "code": "DL1",
+          "x": 340,
+          "y": 280,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "5c8e3d77f382:p1:SO1:42004d5cde",
+          "page": 1,
+          "code": "SO1",
+          "x": 100,
+          "y": 160,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "5c8e3d77f382:p1:SO1:b81d14d573",
+          "page": 1,
+          "code": "SO1",
+          "x": 240,
+          "y": 160,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "dev-clean",
+          "split": "development",
+          "config": "manual-exemplar",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 3,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "dev-clean",
+          "split": "development",
+          "config": "manual-exemplar",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 2,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 1,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        }
+      ]
+    },
+    {
+      "config": "extracted-legend",
+      "hits": [
+        {
+          "id": "5c8e3d77f382:p1:DL1:86b835ffae",
+          "page": 1,
+          "code": "DL1",
+          "x": 100,
+          "y": 280,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 1
+        },
+        {
+          "id": "5c8e3d77f382:p1:DL1:7273c1af39",
+          "page": 1,
+          "code": "DL1",
+          "x": 220,
+          "y": 280,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 2
+        },
+        {
+          "id": "5c8e3d77f382:p1:DL1:5f20341311",
+          "page": 1,
+          "code": "DL1",
+          "x": 340,
+          "y": 280,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 3
+        },
+        {
+          "id": "5c8e3d77f382:p1:SO1:42004d5cde",
+          "page": 1,
+          "code": "SO1",
+          "x": 100,
+          "y": 160,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 4
+        },
+        {
+          "id": "5c8e3d77f382:p1:SO1:b81d14d573",
+          "page": 1,
+          "code": "SO1",
+          "x": 240,
+          "y": 160,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "5c8e3d77f382:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 5
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "dev-clean",
+          "split": "development",
+          "config": "extracted-legend",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 1,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "dev-clean",
+          "split": "development",
+          "config": "extracted-legend",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 2,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        }
+      ]
+    }
+  ]
+}

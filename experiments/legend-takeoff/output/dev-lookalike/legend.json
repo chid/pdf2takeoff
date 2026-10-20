@@ -1,0 +1,56 @@
+[
+  {
+    "id": "3917aaec69d6:p1:DL1",
+    "code": "DL1",
+    "page": 1,
+    "coordinateFrame": "pdf-points-bottom-left",
+    "association": "supported-by-layout",
+    "sourceBounds": {
+      "x0": 25,
+      "y0": 360,
+      "x1": 390,
+      "y1": 450
+    },
+    "sourceText": "DL1 - Recessed downlight",
+    "description": "Recessed downlight",
+    "candidates": [
+      {
+        "x0": 47,
+        "y0": 407,
+        "x1": 63,
+        "y1": 423
+      }
+    ],
+    "exemplar": {
+      "x": 55,
+      "y": 415
+    }
+  },
+  {
+    "id": "3917aaec69d6:p1:SO1",
+    "code": "SO1",
+    "page": 1,
+    "coordinateFrame": "pdf-points-bottom-left",
+    "association": "supported-by-layout",
+    "sourceBounds": {
+      "x0": 25,
+      "y0": 360,
+      "x1": 390,
+      "y1": 450
+    },
+    "sourceText": "SO1 - Socket outlet",
+    "description": "Socket outlet",
+    "candidates": [
+      {
+        "x0": 46,
+        "y0": 379,
+        "x1": 64,
+        "y1": 391
+      }
+    ],
+    "exemplar": {
+      "x": 55,
+      "y": 385
+    }
+  }
+]

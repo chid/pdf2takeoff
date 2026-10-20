@@ -1,0 +1,297 @@
+{
+  "documentId": "507b18d01ecc",
+  "sourceSha256": "507b18d01ecc59894136a6eda6ad423b1d53aa009d116797a455e8ec6ecc4ca1",
+  "page": 1,
+  "coordinateFrame": "pdf-points-bottom-left",
+  "excludedRegions": [
+    {
+      "x0": 25,
+      "y0": 360,
+      "x1": 390,
+      "y1": 450
+    }
+  ],
+  "legend": [
+    {
+      "id": "507b18d01ecc:p1:DL1",
+      "code": "DL1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "unresolved",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "DL1 - Recessed downlight",
+      "description": "Recessed downlight",
+      "candidates": [
+        {
+          "x0": 46,
+          "y0": 406,
+          "x1": 64,
+          "y1": 424
+        },
+        {
+          "x0": 67,
+          "y0": 407,
+          "x1": 83,
+          "y1": 423
+        }
+      ],
+      "reason": "expected exactly one candidate path"
+    },
+    {
+      "id": "507b18d01ecc:p1:SO1",
+      "code": "SO1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "SO1 - Socket outlet",
+      "description": "Socket outlet",
+      "candidates": [
+        {
+          "x0": 47,
+          "y0": 377,
+          "x1": 63,
+          "y1": 393
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 385
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "config": "manual-exemplar",
+      "hits": [
+        {
+          "id": "507b18d01ecc:p1:DL1:ffd93b70b4",
+          "page": 1,
+          "code": "DL1",
+          "x": 130,
+          "y": 260,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "507b18d01ecc:p1:DL1:33eb70f6e0",
+          "page": 1,
+          "code": "DL1",
+          "x": 220,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "507b18d01ecc:p1:DL1:566ebc1630",
+          "page": 1,
+          "code": "DL1",
+          "x": 340,
+          "y": 260,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "507b18d01ecc:p1:SO1:ffd93b70b4",
+          "page": 1,
+          "code": "SO1",
+          "x": 130,
+          "y": 260,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "507b18d01ecc:p1:SO1:33eb70f6e0",
+          "page": 1,
+          "code": "SO1",
+          "x": 220,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "507b18d01ecc:p1:SO1:566ebc1630",
+          "page": 1,
+          "code": "SO1",
+          "x": 340,
+          "y": 260,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "test-ambiguous",
+          "split": "held-out",
+          "config": "manual-exemplar",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.6666666666666666,
+          "recall": 1,
+          "exactCount": false,
+          "absoluteCountError": 1,
+          "runtimeMs": 1,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "test-ambiguous",
+          "split": "held-out",
+          "config": "manual-exemplar",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.3333333333333333,
+          "recall": 1,
+          "exactCount": false,
+          "absoluteCountError": 2,
+          "runtimeMs": 0,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        }
+      ]
+    },
+    {
+      "config": "extracted-legend",
+      "hits": [
+        {
+          "id": "507b18d01ecc:p1:SO1:ffd93b70b4",
+          "page": 1,
+          "code": "SO1",
+          "x": 130,
+          "y": 260,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 1
+        },
+        {
+          "id": "507b18d01ecc:p1:SO1:33eb70f6e0",
+          "page": 1,
+          "code": "SO1",
+          "x": 220,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 2
+        },
+        {
+          "id": "507b18d01ecc:p1:SO1:566ebc1630",
+          "page": 1,
+          "code": "SO1",
+          "x": 340,
+          "y": 260,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "507b18d01ecc:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 3
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "test-ambiguous",
+          "split": "held-out",
+          "config": "extracted-legend",
+          "code": "DL1",
+          "status": "not-assessed",
+          "supported": null,
+          "unresolved": null,
+          "reason": "No resolved legend exemplar",
+          "provider": null,
+          "truncated": false,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "precision": null,
+          "recall": 0,
+          "exactCount": null,
+          "absoluteCountError": null,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "test-ambiguous",
+          "split": "held-out",
+          "config": "extracted-legend",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 1,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.3333333333333333,
+          "recall": 1,
+          "exactCount": false,
+          "absoluteCountError": 2,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        }
+      ]
+    }
+  ]
+}

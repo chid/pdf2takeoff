@@ -1,0 +1,15 @@
+{
+  "protocolVersion": 1,
+  "frozenBeforeFirstScan": true,
+  "coordinateFrame": "pdf-points-bottom-left",
+  "page": {"width": 600, "height": 500},
+  "rules": {"matchRadiusPt": 10, "dedupRadiusPt": 3},
+  "sheets": [
+    {"id":"dev-clean","split":"development","style":"a","legend":true,"instances":[["DL1",100,280],["DL1",220,280],["DL1",340,280],["SO1",100,160],["SO1",240,160]]},
+    {"id":"dev-repeat","split":"development","style":"a","legend":true,"repeatLegend":true,"instances":[["DL1",130,260],["DL1",300,260],["SO1",180,130]]},
+    {"id":"dev-lookalike","split":"development","style":"a","legend":true,"lookalike":true,"instances":[["DL1",110,270],["SO1",260,150],["SO1",410,150]]},
+    {"id":"test-transforms","split":"held-out","style":"b","legend":true,"instances":[["DL1",100,270,1,90],["DL1",240,270,1.3,180],["DL1",390,270,0.75,270],["SO1",140,140,1.2,90],["SO1",340,140,0.8,180]]},
+    {"id":"test-missing","split":"held-out","style":"c","legend":false,"instances":[["DL1",140,260],["DL1",320,260],["SO1",220,140]]},
+    {"id":"test-ambiguous","split":"held-out","style":"c","legend":true,"ambiguous":true,"instances":[["DL1",130,260],["DL1",340,260],["SO1",220,140]]}
+  ]
+}

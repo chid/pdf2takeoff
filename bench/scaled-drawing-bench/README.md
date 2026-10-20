@@ -196,3 +196,9 @@ Each of those is a patch target, and this table is how to tell when it lands.
 `v0.1` is the first release: seed 20261018, 200 sheets. A change to the
 generator that alters any sheet or question bumps the version; results are
 only comparable within a version.
+
+The v0.1 generator freezes its historical random ordering in
+`scripts/bench/shuffle-v01.mjs`. Native `Array.sort` with a random comparator
+changed the random-stream consumption across runtimes. The fixed ordering
+reproduces the committed seed-12 sample questions exactly; no benchmark
+questions, answer keys or scorers are replaced by this compatibility fix.

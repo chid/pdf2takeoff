@@ -16,6 +16,7 @@
 
 import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib';
 import { polyArea, polyPerimeter } from './draw.mjs';
+import { shuffleV01 } from './shuffle-v01.mjs';
 
 const METERS_PER_PT = 0.0254 / 72;
 const BLACK = rgb(0, 0, 0);
@@ -436,7 +437,7 @@ export function designSheet(R, index, opts) {
 
   // symbols: 2 to 4 classes, placed clear of walls, labels and each other
   const nClasses = randInt(2, 4);
-  const classes = [...CLASSES].sort(() => rng() - 0.5).slice(0, nClasses);
+  const classes = shuffleV01(CLASSES, rng).slice(0, nClasses);
   const target = randInt(5, 40);
   const clearU = Math.max((SYM_PT + 7) / ptPerU, 0.7 * U.grid * 3); // clear of wall faces, incl. a 2-grid partition move
   const stripClearU = Math.max(clearU, 3 * U.grid + SYM_PT / ptPerU);
@@ -472,7 +473,7 @@ export function designSheet(R, index, opts) {
   if (rng() < opts.revBShare) {
     const changes = [];
     const LB = JSON.parse(JSON.stringify(L));
-    const menu = ['wall moved', 'door added', 'symbol removed'].sort(() => rng() - 0.5).slice(0, randInt(1, 3));
+    const menu = shuffleV01(['wall moved', 'door added', 'symbol removed'], rng).slice(0, randInt(1, 3));
     for (const m of menu) {
       if (m === 'wall moved' && strips.length >= 2) {
         const p = randInt(0, strips.length - 2);
@@ -625,10 +626,10 @@ function questionsFor(spec, R) {
       }),
     );
   }
-  lengthCands.sort(() => rng() - 0.5).slice(0, 2).forEach((f) => f());
+  shuffleV01(lengthCands, rng).slice(0, 2).forEach((f) => f());
 
   // areas: two or three rooms, L-shaped ones first
-  const rooms = [...geo.rooms].sort(() => rng() - 0.5);
+  const rooms = shuffleV01(geo.rooms, rng);
   const areaRooms = [...rooms.filter((r) => r.shape === 'L'), ...rooms.filter((r) => r.shape !== 'L')].slice(0, Math.min(rooms.length, 2 + (rng() < 0.5 ? 1 : 0)));
   for (const r of areaRooms) {
     q('area', `What is the floor area of ${r.name} on sheet ${id}, in ${U.areaName}, measured between the inside faces of its walls?`, nts ? UNANS : round(r.area), U.areaUnit, 0.02, {
@@ -641,7 +642,7 @@ function questionsFor(spec, R) {
   });
 
   // counts: sheet-wide for one or two classes, one room count
-  const classes = [...spec.legend].sort(() => rng() - 0.5);
+  const classes = shuffleV01(spec.legend, rng);
   for (const c of classes.slice(0, Math.min(classes.length, 1 + (rng() < 0.6 ? 1 : 0)))) {
     const total = geo.symbols.filter((s) => s.cls === c).length;
     q('count', `How many ${PLURAL[c]} are shown on the plan of sheet ${id}? Count every instance on the drawing and do not count the legend symbol.`, total, 'count', 0, {

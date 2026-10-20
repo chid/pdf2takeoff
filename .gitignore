@@ -31,3 +31,7 @@ FRIEND-ONBOARDING.md
 
 # python bytecode from the bench generator
 __pycache__/
+
+# Browser workspace build (source retained in experiments)
+experiments/legend-takeoff/.build/
+experiments/legend-takeoff/.resources/

@@ -1,0 +1,309 @@
+{
+  "documentId": "be1d59021004",
+  "sourceSha256": "be1d59021004ef1c3a09ba2ab67e1a8a046042f9515bff518ea80e57519308fd",
+  "page": 1,
+  "coordinateFrame": "pdf-points-bottom-left",
+  "excludedRegions": [
+    {
+      "x0": 25,
+      "y0": 360,
+      "x1": 390,
+      "y1": 450
+    }
+  ],
+  "legend": [
+    {
+      "id": "be1d59021004:p1:DL1",
+      "code": "DL1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "DL1 - Recessed downlight",
+      "description": "Recessed downlight",
+      "candidates": [
+        {
+          "x0": 45,
+          "y0": 405,
+          "x1": 65,
+          "y1": 425
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 415
+      }
+    },
+    {
+      "id": "be1d59021004:p1:SO1",
+      "code": "SO1",
+      "page": 1,
+      "coordinateFrame": "pdf-points-bottom-left",
+      "association": "supported-by-layout",
+      "sourceBounds": {
+        "x0": 25,
+        "y0": 360,
+        "x1": 390,
+        "y1": 450
+      },
+      "sourceText": "SO1 - Socket outlet",
+      "description": "Socket outlet",
+      "candidates": [
+        {
+          "x0": 45,
+          "y0": 378,
+          "x1": 65,
+          "y1": 392
+        }
+      ],
+      "exemplar": {
+        "x": 55,
+        "y": 385
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "config": "manual-exemplar",
+      "hits": [
+        {
+          "id": "be1d59021004:p1:DL1:9a845911a8",
+          "page": 1,
+          "code": "DL1",
+          "x": 100,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "be1d59021004:p1:DL1:25296e810f",
+          "page": 1,
+          "code": "DL1",
+          "x": 240,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "be1d59021004:p1:DL1:bc2d0dd271",
+          "page": 1,
+          "code": "DL1",
+          "x": 390,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "be1d59021004:p1:SO1:596ffb3cef",
+          "page": 1,
+          "code": "SO1",
+          "x": 140,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        },
+        {
+          "id": "be1d59021004:p1:SO1:c904347ddb",
+          "page": 1,
+          "code": "SO1",
+          "x": 340,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "test-transforms",
+          "split": "held-out",
+          "config": "manual-exemplar",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 1,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "test-transforms",
+          "split": "held-out",
+          "config": "manual-exemplar",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 2,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 1,
+          "manualCorrections": 0
+        }
+      ]
+    },
+    {
+      "config": "extracted-legend",
+      "hits": [
+        {
+          "id": "be1d59021004:p1:DL1:9a845911a8",
+          "page": 1,
+          "code": "DL1",
+          "x": 100,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 1
+        },
+        {
+          "id": "be1d59021004:p1:DL1:25296e810f",
+          "page": 1,
+          "code": "DL1",
+          "x": 240,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 2
+        },
+        {
+          "id": "be1d59021004:p1:DL1:bc2d0dd271",
+          "page": 1,
+          "code": "DL1",
+          "x": 390,
+          "y": 270,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:DL1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 3
+        },
+        {
+          "id": "be1d59021004:p1:SO1:596ffb3cef",
+          "page": 1,
+          "code": "SO1",
+          "x": 140,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 4
+        },
+        {
+          "id": "be1d59021004:p1:SO1:c904347ddb",
+          "page": 1,
+          "code": "SO1",
+          "x": 340,
+          "y": 140,
+          "coordinateFrame": "pdf-points-bottom-left",
+          "legendEntryId": "be1d59021004:p1:SO1",
+          "method": "vector",
+          "score": 1,
+          "reviewState": "detector-supported",
+          "humanConfirmed": false,
+          "number": 5
+        }
+      ],
+      "quantities": [
+        {
+          "sheet": "test-transforms",
+          "split": "held-out",
+          "config": "extracted-legend",
+          "code": "DL1",
+          "status": "assessed",
+          "supported": 3,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        },
+        {
+          "sheet": "test-transforms",
+          "split": "held-out",
+          "config": "extracted-legend",
+          "code": "SO1",
+          "status": "assessed",
+          "supported": 2,
+          "unresolved": 0,
+          "reason": null,
+          "provider": "vector",
+          "truncated": false,
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1,
+          "recall": 1,
+          "exactCount": true,
+          "absoluteCountError": 0,
+          "runtimeMs": 0,
+          "manualSelections": 0,
+          "manualCorrections": 0
+        }
+      ]
+    }
+  ]
+}
